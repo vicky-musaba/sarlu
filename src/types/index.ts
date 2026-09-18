@@ -1,7 +1,7 @@
 export interface User {
   id: string;
   username: string;
-  role: 'admin' | 'supervisor' | 'cashier';
+  role: 'admin' | 'supervisor' | 'auditor' | 'cashier';
   created_at: string;
 }
 

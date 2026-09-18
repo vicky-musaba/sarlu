@@ -6,14 +6,14 @@ import { usePathname, useRouter } from 'next/navigation';
 import { useAuth } from '@/contexts/AuthContext';
 
 const menuItems = [
-  { path: '/dashboard', icon: '🏠', label: 'Tableau de bord', roles: ['admin', 'supervisor', 'cashier'] },
+  { path: '/dashboard', icon: '🏠', label: 'Tableau de bord', roles: ['admin', 'supervisor', 'auditor', 'cashier'] },
   { path: '/new-output', icon: '💰', label: 'Nouvelle sortie', roles: ['admin', 'cashier'] },
   { path: '/validation', icon: '✅', label: 'Validation', roles: ['admin', 'supervisor'] },
-  { path: '/history', icon: '📋', label: 'Historique', roles: ['admin', 'supervisor', 'cashier'] },
-  { path: '/reports', icon: '📊', label: 'Rapports', roles: ['admin', 'supervisor', 'cashier'] },
+  { path: '/history', icon: '📋', label: 'Historique', roles: ['admin', 'supervisor', 'auditor', 'cashier'] },
+  { path: '/reports', icon: '📊', label: 'Rapports', roles: ['admin', 'supervisor', 'auditor', 'cashier'] },
   { path: '/categories', icon: '🏷️', label: 'Catégories', roles: ['admin'] },
-  { path: '/cash', icon: '💵', label: 'Caisse', roles: ['admin', 'supervisor', 'cashier'] },
-  { path: '/audit', icon: '🧾', label: 'Journal d\'audit', roles: ['admin'] },
+  { path: '/cash', icon: '💵', label: 'Caisse', roles: ['admin', 'supervisor', 'auditor', 'cashier'] },
+  { path: '/audit', icon: '🧾', label: 'Journal d\'audit', roles: ['admin', 'auditor'] },
   { path: '/backup', icon: '💾', label: 'Sauvegardes', roles: ['admin'] },
   { path: '/settings', icon: '⚙️', label: 'Paramètres', roles: ['admin'] },
   { path: '/diagnostic', icon: '🔧', label: 'Diagnostic', roles: ['admin'] },
@@ -83,7 +83,7 @@ export const Sidebar: React.FC = () => {
           <p className="text-sm text-gray-400">Connecté en tant que :</p>
           <p className="font-medium">{user?.username || 'Chargement...'}</p>
           <p className="text-xs text-gray-500 capitalize">
-            {user?.role === 'admin' ? 'Administrateur' : user?.role === 'supervisor' ? 'Superviseur' : user?.role === 'cashier' ? 'Caissière' : 'Inconnu'}
+            {user?.role === 'admin' ? 'Administrateur' : user?.role === 'supervisor' ? 'Superviseur' : user?.role === 'auditor' ? 'Auditrice' : user?.role === 'cashier' ? 'Caissière' : 'Inconnu'}
           </p>
         </div>
         <button

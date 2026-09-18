@@ -47,6 +47,7 @@ async function createUsers() {
   const users = [
     { email: 'admin@lesecours.com', password: 'admin123', username: 'admin', role: 'admin' },
     { email: 'superviseur@lesecours.com', password: 'superviseur123', username: 'superviseur', role: 'supervisor' },
+    { email: 'auditeur@lesecours.com', password: 'auditeur123', username: 'auditeur', role: 'auditor' },
     { email: 'caissiere@lesecours.com', password: 'cashier123', username: 'caissiere', role: 'cashier' },
   ];
 
@@ -180,6 +181,7 @@ async function main() {
     console.log('\n👤 Comptes créés :');
     console.log('   Admin : admin@lesecours.com / admin123');
     console.log('   Superviseur : superviseur@lesecours.com / superviseur123');
+    console.log('   Auditeur : auditeur@lesecours.com / auditeur123');
     console.log('   Caissière : caissiere@lesecours.com / cashier123');
     console.log('\n📊 Données initialisées :');
     console.log('   - 18 catégories par défaut');

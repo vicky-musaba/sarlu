@@ -13,6 +13,7 @@ interface AuthContextType {
   loading: boolean;
   isAdmin: boolean;
   isSupervisor: boolean;
+  isAuditor: boolean;
   isCashier: boolean;
   login: (email: string, password: string) => Promise<void>;
   logout: () => Promise<void>;
@@ -86,10 +87,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const isAdmin = user?.role === 'admin';
   const isSupervisor = user?.role === 'supervisor';
+  const isAuditor = user?.role === 'auditor';
   const isCashier = user?.role === 'cashier';
 
   return (
-    <AuthContext.Provider value={{ user, firebaseUser, loading, isAdmin, isSupervisor, isCashier, login, logout }}>
+    <AuthContext.Provider value={{ user, firebaseUser, loading, isAdmin, isSupervisor, isAuditor, isCashier, login, logout }}>
       {children}
     </AuthContext.Provider>
   );

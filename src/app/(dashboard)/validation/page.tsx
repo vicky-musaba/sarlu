@@ -8,7 +8,8 @@ import { Button } from '@/components/ui/Button';
 import { Card } from '@/components/ui/Card';
 
 export default function ValidationPage() {
-  const { user, isSupervisor, isAdmin } = useAuth();
+  const { user, isSupervisor, isAuditor, isAdmin } = useAuth();
+  const canApproveReject = isSupervisor || isAdmin;
   const [pendingOutputs, setPendingOutputs] = useState<Output[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedOutput, setSelectedOutput] = useState<Output | null>(null);
@@ -64,10 +65,10 @@ export default function ValidationPage() {
     return new Intl.NumberFormat('fr-FR', { style: 'currency', currency: 'USD' }).format(amount);
   };
 
-  if (!isSupervisor && !isAdmin) {
+  if (!isSupervisor && !isAuditor && !isAdmin) {
     return (
       <div className="flex items-center justify-center h-full">
-        <p className="text-red-600">Accès non autorisé. Cette page est réservée aux superviseurs et administrateurs.</p>
+        <p className="text-red-600">Accès non autorisé. Cette page est réservée aux superviseurs, auditeurs et administrateurs.</p>
       </div>
     );
   }
@@ -120,19 +121,23 @@ export default function ValidationPage() {
                     </div>
                   </div>
                   <div className="flex space-x-2 ml-4">
-                    <Button
-                      onClick={() => handleApprove(output.id)}
-                      className="bg-green-600 hover:bg-green-700"
-                    >
-                      ✓ Approuver
-                    </Button>
-                    <Button
-                      variant="secondary"
-                      onClick={() => openRejectModal(output)}
-                      className="bg-red-600 hover:bg-red-700 text-white"
-                    >
-                      ✗ Rejeter
-                    </Button>
+                    {canApproveReject && (
+                      <>
+                        <Button
+                          onClick={() => handleApprove(output.id)}
+                          className="bg-green-600 hover:bg-green-700"
+                        >
+                          ✓ Approuver
+                        </Button>
+                        <Button
+                          variant="secondary"
+                          onClick={() => openRejectModal(output)}
+                          className="bg-red-600 hover:bg-red-700 text-white"
+                        >
+                          ✗ Rejeter
+                        </Button>
+                      </>
+                    )}
                   </div>
                 </div>
               </div>

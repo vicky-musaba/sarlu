@@ -88,7 +88,7 @@ const stringToTimestamp = (dateString: string): Timestamp => {
  * Vérifie qu'un rôle est valide.
  */
 const normalizeRole = (role: unknown): User['role'] => {
-  if (role === 'admin' || role === 'supervisor' || role === 'cashier') {
+  if (role === 'admin' || role === 'supervisor' || role === 'auditor' || role === 'cashier') {
     return role;
   }
 

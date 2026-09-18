@@ -271,6 +271,7 @@ export default function SettingsPage() {
                 options={[
                   { value: 'admin', label: 'Administrateur' },
                   { value: 'supervisor', label: 'Superviseur' },
+                  { value: 'auditor', label: 'Auditrice' },
                   { value: 'cashier', label: 'Caissière' },
                 ]}
               />
@@ -311,6 +312,7 @@ export default function SettingsPage() {
                 options={[
                   { value: 'admin', label: 'Administrateur' },
                   { value: 'supervisor', label: 'Superviseur' },
+                  { value: 'auditor', label: 'Auditrice' },
                   { value: 'cashier', label: 'Caissière' },
                 ]}
               />
