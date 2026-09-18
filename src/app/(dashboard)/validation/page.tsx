@@ -73,8 +73,8 @@ export default function ValidationPage() {
     setShowRejectModal(true);
   };
 
-  const formatCurrency = (amount: number) => {
-    return formatCurrencyUtil(amount, companySettings?.currency || '$');
+  const formatCurrency = (amount: number, currency?: string) => {
+    return formatCurrencyUtil(amount, currency || companySettings?.currency || '$');
   };
 
   if (!isSupervisor && !isAuditor && !isAdmin) {
@@ -116,7 +116,10 @@ export default function ValidationPage() {
                       </div>
                       <div>
                         <span className="text-gray-500">Montant:</span>{' '}
-                        <span className="font-bold text-green-600">{formatCurrency(output.amount)}</span>
+                        <span className="font-bold text-green-600">{formatCurrency(output.amount, output.currency)}</span>
+                      </div>
+                      <div>
+                        <span className="text-gray-500">Devise:</span> {output.currency || '$'}
                       </div>
                       <div>
                         <span className="text-gray-500">Catégorie:</span> {output.category_name}
@@ -165,7 +168,7 @@ export default function ValidationPage() {
             <h2 className="text-xl font-bold mb-4">Rejeter la sortie</h2>
             <div className="mb-4">
               <p className="text-sm text-gray-600 mb-2">
-                Sortie: {selectedOutput.number} - {formatCurrency(selectedOutput.amount)}
+                Sortie: {selectedOutput.number} - {formatCurrency(selectedOutput.amount, selectedOutput.currency)}
               </p>
               <label className="block text-sm font-medium text-gray-700 mb-2">
                 Motif du rejet

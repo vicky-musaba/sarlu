@@ -183,8 +183,8 @@ function PrintReceiptContent() {
     return new Date(dateString).toLocaleDateString('fr-FR');
   };
 
-  const formatCurrency = (amount: number) => {
-    return formatCurrencyUtil(amount, companySettings?.currency || '$');
+  const formatCurrency = (amount: number, currency?: string) => {
+    return formatCurrencyUtil(amount, currency || companySettings?.currency || '$');
   };
 
   if (loading) {
@@ -251,7 +251,7 @@ function PrintReceiptContent() {
           </div>
 
           <div className="text-center my-4">
-            <p className="text-2xl font-bold">{formatCurrency(output.amount)}</p>
+            <p className="text-2xl font-bold">{formatCurrency(output.amount, output.currency)}</p>
           </div>
 
           <div className="space-y-2 text-sm">

@@ -3,7 +3,8 @@
 import React, { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/contexts/AuthContext';
-import { createOutput, getAllCategories } from '@/lib/firestore';
+import { createOutput, getAllCategories, getCompanySettings } from '@/lib/firestore';
+import { CompanySettings } from '@/types';
 import { Input } from '@/components/ui/Input';
 import { Select } from '@/components/ui/Select';
 import { Button } from '@/components/ui/Button';
@@ -14,10 +15,12 @@ export default function NewOutputPage() {
   const { user } = useAuth();
   const [loading, setLoading] = useState(false);
   const [categories, setCategories] = useState<Array<{ value: string; label: string }>>([]);
+  const [companySettings, setCompanySettings] = useState<CompanySettings | null>(null);
   const [formData, setFormData] = useState({
     category_id: '',
     amount: '',
     description: '',
+    currency: '$',
     responsible: '',
     payment_mode: 'especes',
     reference: '',
@@ -26,6 +29,7 @@ export default function NewOutputPage() {
 
   React.useEffect(() => {
     loadCategories();
+    loadCompanySettings();
   }, []);
 
   const loadCategories = async () => {
@@ -34,6 +38,18 @@ export default function NewOutputPage() {
       setCategories(cats.map(c => ({ value: c.id, label: c.name })));
     } catch (error) {
       console.error('Failed to load categories:', error);
+    }
+  };
+
+  const loadCompanySettings = async () => {
+    try {
+      const settings = await getCompanySettings();
+      setCompanySettings(settings);
+      if (settings) {
+        setFormData(prev => ({ ...prev, currency: settings.currency }));
+      }
+    } catch (error) {
+      console.error('Failed to load company settings:', error);
     }
   };
 
@@ -49,6 +65,7 @@ export default function NewOutputPage() {
         category_name: category?.label || '',
         description: formData.description,
         amount: parseFloat(formData.amount),
+        currency: formData.currency,
         responsible: formData.responsible,
         payment_mode: formData.payment_mode,
         reference: formData.reference,
@@ -90,6 +107,17 @@ export default function NewOutputPage() {
               required
               min="0"
               step="0.01"
+            />
+
+            <Select
+              label="Devise"
+              value={formData.currency}
+              onChange={(e) => setFormData({ ...formData, currency: e.target.value })}
+              options={[
+                { value: '$', label: 'Dollar ($)' },
+                { value: 'CDF', label: 'Franc Congolais (CDF)' },
+              ]}
+              required
             />
 
             <Input

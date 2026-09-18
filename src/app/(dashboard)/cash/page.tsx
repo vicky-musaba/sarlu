@@ -83,8 +83,8 @@ export default function CashPage() {
     }
   };
 
-  const formatCurrency = (amount: number) => {
-    return formatCurrencyUtil(amount, companySettings?.currency || '$');
+  const formatCurrency = (amount: number, currency?: string) => {
+    return formatCurrencyUtil(amount, currency || companySettings?.currency || '$');
   };
 
   if (loading) {

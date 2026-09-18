@@ -2,8 +2,8 @@
 
 import React, { useEffect, useState, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { updateOutput, getAllCategories, getOutputById } from '@/lib/firestore';
-import { Output } from '@/types';
+import { updateOutput, getAllCategories, getOutputById, getCompanySettings } from '@/lib/firestore';
+import { Output, CompanySettings } from '@/types';
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
@@ -17,10 +17,12 @@ function EditOutputContent() {
   const [loading, setLoading] = useState(false);
   const [categories, setCategories] = useState<Array<{ value: string; label: string }>>([]);
   const [output, setOutput] = useState<Output | null>(null);
+  const [companySettings, setCompanySettings] = useState<CompanySettings | null>(null);
   const [formData, setFormData] = useState({
     category_id: '',
     amount: '',
     description: '',
+    currency: '$',
     responsible: '',
     payment_mode: 'especes',
     reference: '',
@@ -33,6 +35,7 @@ function EditOutputContent() {
       loadOutput(outputId);
     }
     loadCategories();
+    loadCompanySettings();
   }, [searchParams]);
 
   const loadOutput = async (id: string) => {
@@ -44,6 +47,7 @@ function EditOutputContent() {
           category_id: outputData.category_id,
           amount: outputData.amount.toString(),
           description: outputData.description,
+          currency: outputData.currency || '$',
           responsible: outputData.responsible,
           payment_mode: outputData.payment_mode,
           reference: outputData.reference,
@@ -64,6 +68,15 @@ function EditOutputContent() {
     }
   };
 
+  const loadCompanySettings = async () => {
+    try {
+      const settings = await getCompanySettings();
+      setCompanySettings(settings);
+    } catch (error) {
+      console.error('Failed to load company settings:', error);
+    }
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!output) return;
@@ -79,6 +92,7 @@ function EditOutputContent() {
         category_name: category?.label || '',
         description: formData.description,
         amount: newAmount,
+        currency: formData.currency,
         responsible: formData.responsible,
         payment_mode: formData.payment_mode,
         reference: formData.reference,
@@ -144,6 +158,17 @@ function EditOutputContent() {
             required
             min="0"
             step="0.01"
+          />
+
+          <Select
+            label="Devise"
+            value={formData.currency}
+            onChange={(e) => setFormData({ ...formData, currency: e.target.value })}
+            options={[
+              { value: '$', label: 'Dollar ($)' },
+              { value: 'CDF', label: 'Franc Congolais (CDF)' },
+            ]}
+            required
           />
 
           <Input

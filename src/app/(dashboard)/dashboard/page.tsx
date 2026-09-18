@@ -2,13 +2,25 @@
 
 import React, { useEffect, useState } from 'react';
 import { getAllOutputs, getCashBalance, getCompanySettings } from '@/lib/firestore';
-import { DashboardStats, CompanySettings } from '@/types';
+import { DashboardStats, CompanySettings, Output } from '@/types';
 import { Card } from '@/components/ui/Card';
 import { formatCurrency as formatCurrencyUtil } from '@/utils/currency';
+
+interface StatsByCurrency {
+  [currency: string]: {
+    today_total: number;
+    week_total: number;
+    month_total: number;
+    year_total: number;
+    general_total: number;
+    count: number;
+  };
+}
 
 export default function DashboardPage() {
   const [stats, setStats] = useState<DashboardStats | null>(null);
   const [companySettings, setCompanySettings] = useState<CompanySettings | null>(null);
+  const [statsByCurrency, setStatsByCurrency] = useState<StatsByCurrency>({});
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -55,6 +67,49 @@ export default function DashboardPage() {
 
       const generalTotal = outputs.reduce((sum, o) => sum + o.amount, 0);
 
+      // Calculate stats by currency
+      const statsByCurrency: StatsByCurrency = {};
+      outputs.forEach(o => {
+        const currency = o.currency || '$';
+        if (!statsByCurrency[currency]) {
+          statsByCurrency[currency] = {
+            today_total: 0,
+            week_total: 0,
+            month_total: 0,
+            year_total: 0,
+            general_total: 0,
+            count: 0,
+          };
+        }
+
+        if (o.date === today) {
+          statsByCurrency[currency].today_total += o.amount;
+        }
+        if (o.date >= weekStartStr) {
+          statsByCurrency[currency].week_total += o.amount;
+        }
+        if (o.date >= monthStartStr) {
+          statsByCurrency[currency].month_total += o.amount;
+        }
+        if (o.date >= yearStartStr) {
+          statsByCurrency[currency].year_total += o.amount;
+        }
+        statsByCurrency[currency].general_total += o.amount;
+        statsByCurrency[currency].count += 1;
+      });
+
+      setStatsByCurrency(statsByCurrency);
+
+      // Group outputs by currency for display
+      const outputsByCurrency = outputs.reduce((acc, output) => {
+        const currency = output.currency || '$';
+        if (!acc[currency]) {
+          acc[currency] = [];
+        }
+        acc[currency].push(output);
+        return acc;
+      }, {} as Record<string, Output[]>);
+
       // Calculate category totals
       const categoryMap = new Map<string, { count: number; total: number }>();
       outputs.forEach(o => {
@@ -88,8 +143,8 @@ export default function DashboardPage() {
     }
   };
 
-  const formatCurrencyWithSettings = (amount: number) => {
-    return formatCurrency(amount, companySettings?.currency || '$');
+  const formatCurrencyWithSettings = (amount: number, currency?: string) => {
+    return formatCurrencyUtil(amount, currency || companySettings?.currency || '$');
   };
 
   if (loading) {
@@ -193,6 +248,95 @@ export default function DashboardPage() {
           </div>
         </Card>
       </div>
+
+      {/* Stats by Currency */}
+      <Card>
+        <h2 className="text-xl font-bold text-gray-800 mb-4">Statistiques par devise</h2>
+        {Object.keys(statsByCurrency).length > 0 ? (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {Object.entries(statsByCurrency).map(([currency, currencyStats]) => (
+              <div key={currency} className="border border-gray-200 rounded-lg p-4">
+                <h3 className="text-lg font-semibold text-gray-800 mb-3">{currency}</h3>
+                <div className="space-y-2 text-sm">
+                  <div className="flex justify-between">
+                    <span className="text-gray-600">Aujourd'hui:</span>
+                    <span className="font-medium">{formatCurrencyWithSettings(currencyStats.today_total, currency)}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-gray-600">Cette semaine:</span>
+                    <span className="font-medium">{formatCurrencyWithSettings(currencyStats.week_total, currency)}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-gray-600">Ce mois:</span>
+                    <span className="font-medium">{formatCurrencyWithSettings(currencyStats.month_total, currency)}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-gray-600">Cette année:</span>
+                    <span className="font-medium">{formatCurrencyWithSettings(currencyStats.year_total, currency)}</span>
+                  </div>
+                  <div className="flex justify-between border-t pt-2 mt-2">
+                    <span className="text-gray-600 font-medium">Total général:</span>
+                    <span className="font-bold">{formatCurrencyWithSettings(currencyStats.general_total, currency)}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-gray-600">Nombre de sorties:</span>
+                    <span className="font-medium">{currencyStats.count}</span>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        ) : (
+          <p className="text-gray-500 text-center py-4">Aucune donnée disponible</p>
+        )}
+      </Card>
+
+      {/* Recent Outputs by Currency */}
+      <Card>
+        <h2 className="text-xl font-bold text-gray-800 mb-4">Sorties récentes par devise</h2>
+        {Object.keys(outputsByCurrency).length > 0 ? (
+          <div className="space-y-6">
+            {Object.entries(outputsByCurrency).map(([currency, currencyOutputs]) => (
+              <div key={currency} className="border border-gray-200 rounded-lg p-4">
+                <h3 className="text-lg font-semibold text-gray-800 mb-3">
+                  {currency} ({currencyOutputs.length} sortie{currencyOutputs.length > 1 ? 's' : ''})
+                </h3>
+                <div className="overflow-x-auto">
+                  <table className="min-w-full">
+                    <thead className="bg-gray-50">
+                      <tr>
+                        <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">N°</th>
+                        <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Date</th>
+                        <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Catégorie</th>
+                        <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Description</th>
+                        <th className="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Montant</th>
+                      </tr>
+                    </thead>
+                    <tbody className="bg-white divide-y divide-gray-200">
+                      {currencyOutputs.slice(0, 5).map((output) => (
+                        <tr key={output.id} className="hover:bg-gray-50">
+                          <td className="px-4 py-2 whitespace-nowrap text-sm font-medium text-gray-900">{output.number}</td>
+                          <td className="px-4 py-2 whitespace-nowrap text-sm text-gray-900">{output.date}</td>
+                          <td className="px-4 py-2 whitespace-nowrap text-sm text-gray-900">{output.category_name}</td>
+                          <td className="px-4 py-2 whitespace-nowrap text-sm text-gray-900">{output.description}</td>
+                          <td className="px-4 py-2 whitespace-nowrap text-sm font-bold text-gray-900">
+                            {formatCurrencyWithSettings(output.amount, output.currency)}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+                {currencyOutputs.length > 5 && (
+                  <p className="text-sm text-gray-500 mt-2">... et {currencyOutputs.length - 5} autre(s) sortie(s)</p>
+                )}
+              </div>
+            ))}
+          </div>
+        ) : (
+          <p className="text-gray-500 text-center py-4">Aucune sortie disponible</p>
+        )}
+      </Card>
 
       {/* Categories Table */}
       <Card>

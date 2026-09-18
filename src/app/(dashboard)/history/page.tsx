@@ -117,8 +117,8 @@ export default function HistoryPage() {
     });
   };
 
-  const formatCurrency = (amount: number) => {
-    return formatCurrencyUtil(amount, companySettings?.currency || '$');
+  const formatCurrency = (amount: number, currency?: string) => {
+    return formatCurrencyUtil(amount, currency || companySettings?.currency || '$');
   };
 
   const paymentModeOptions = [
@@ -201,6 +201,7 @@ export default function HistoryPage() {
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Catégorie</th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Description</th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Montant</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Devise</th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Responsable</th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Mode paiement</th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Créé par</th>
@@ -220,7 +221,8 @@ export default function HistoryPage() {
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{output.category_name}</td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{output.description}</td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm font-bold text-gray-900">{formatCurrency(output.amount)}</td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm font-bold text-gray-900">{formatCurrency(output.amount, output.currency)}</td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{output.currency || '$'}</td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{output.responsible}</td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{output.payment_mode}</td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{output.created_by_username}</td>
@@ -245,7 +247,7 @@ export default function HistoryPage() {
                 ))
               ) : (
                 <tr>
-                  <td colSpan={10} className="px-6 py-4 text-center text-sm text-gray-500">
+                  <td colSpan={11} className="px-6 py-4 text-center text-sm text-gray-500">
                     Aucune sortie trouvée
                   </td>
                 </tr>

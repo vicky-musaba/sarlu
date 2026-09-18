@@ -112,14 +112,15 @@ export default function ReportsPage() {
       output.date,
       output.category_name,
       output.description,
-      formatCurrencyUtil(output.amount, companySettings?.currency || '$'),
+      formatCurrencyUtil(output.amount, output.currency || '$'),
+      output.currency || '$',
       output.responsible,
       output.payment_mode,
       output.created_by_username,
     ]);
 
     autoTable(doc, {
-      head: [['N°', 'Date', 'Catégorie', 'Description', 'Montant', 'Responsable', 'Mode Paiement', 'Créé par']],
+      head: [['N°', 'Date', 'Catégorie', 'Description', 'Montant', 'Devise', 'Responsable', 'Mode Paiement', 'Créé par']],
       body: tableData,
       startY: 60,
       styles: { fontSize: 8 },
@@ -160,8 +161,8 @@ export default function ReportsPage() {
     saveAs(blob, `rapport_sorties_${startDate}_${endDate}.xlsx`);
   };
 
-  const formatCurrency = (amount: number) => {
-    return formatCurrencyUtil(amount, companySettings?.currency || '$');
+  const formatCurrency = (amount: number, currency?: string) => {
+    return formatCurrencyUtil(amount, currency || companySettings?.currency || '$');
   };
 
   return (
@@ -241,6 +242,7 @@ export default function ReportsPage() {
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Catégorie</th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Description</th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Montant</th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Devise</th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Responsable</th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Mode paiement</th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Créé par</th>
@@ -253,7 +255,8 @@ export default function ReportsPage() {
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{output.date}</td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{output.category_name}</td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{output.description}</td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm font-bold text-gray-900">{formatCurrency(output.amount)}</td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm font-bold text-gray-900">{formatCurrency(output.amount, output.currency)}</td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{output.currency || '$'}</td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{output.responsible}</td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{output.payment_mode}</td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{output.created_by_username}</td>

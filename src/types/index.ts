@@ -20,6 +20,7 @@ export interface Output {
   category_name: string;
   description: string;
   amount: number;
+  currency: string;
   responsible: string;
   payment_mode: string;
   reference: string;
