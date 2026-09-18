@@ -413,12 +413,11 @@ export const rejectOutput = async (
 export const getPendingOutputs = async (): Promise<Output[]> => {
   const q = query(
     collection(db, COLLECTIONS.OUTPUTS),
-    where('status', '==', 'pending'),
-    orderBy('created_at', 'desc')
+    where('status', '==', 'pending')
   );
 
   const querySnapshot = await getDocs(q);
-  return querySnapshot.docs.map((document) => {
+  const outputs = querySnapshot.docs.map((document) => {
     const data = document.data();
     return {
       id: document.id,
@@ -442,6 +441,9 @@ export const getPendingOutputs = async (): Promise<Output[]> => {
       rejection_reason: data.rejection_reason ? String(data.rejection_reason) : undefined,
     };
   });
+
+  // Sort by created_at descending
+  return outputs.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
 };
 
 export const getAllOutputs = async (): Promise<Output[]> => {
