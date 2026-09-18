@@ -1,26 +1,39 @@
 'use client';
 
-import React, { useEffect, useState } from 'react';
-import { useRouter } from 'next/navigation';
-import { getCompanySettings } from '@/lib/firestore';
+import React, { useEffect, useState, Suspense } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
+import { getCompanySettings, getOutputById } from '@/lib/firestore';
 import { Output, CompanySettings } from '@/types';
 import { Button } from '@/components/ui/Button';
 import { Card } from '@/components/ui/Card';
 import jsPDF from 'jspdf';
 
-export default function PrintReceiptPage() {
+function PrintReceiptContent() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const [output, setOutput] = useState<Output | null>(null);
   const [companySettings, setCompanySettings] = useState<CompanySettings | null>(null);
   const [loading, setLoading] = useState(true);
   const [paperSize, setPaperSize] = useState<'58mm' | '80mm' | 'A4'>('80mm');
 
   useEffect(() => {
-    if (router.state) {
-      setOutput(router.state as Output);
+    const outputId = searchParams.get('id');
+    if (outputId) {
+      loadOutput(outputId);
     }
     loadCompanySettings();
-  }, [router]);
+  }, [searchParams]);
+
+  const loadOutput = async (id: string) => {
+    try {
+      const outputData = await getOutputById(id);
+      setOutput(outputData);
+    } catch (error) {
+      console.error('Failed to load output:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const loadCompanySettings = async () => {
     try {
@@ -28,8 +41,6 @@ export default function PrintReceiptPage() {
       setCompanySettings(data);
     } catch (error) {
       console.error('Failed to load company settings:', error);
-    } finally {
-      setLoading(false);
     }
   };
 
@@ -274,5 +285,13 @@ export default function PrintReceiptPage() {
         <Button onClick={() => handlePrint()}>🖨️ Imprimer le bon</Button>
       </div>
     </div>
+  );
+}
+
+export default function PrintReceiptPage() {
+  return (
+    <Suspense fallback={<div className="flex items-center justify-center h-full">Chargement...</div>}>
+      <PrintReceiptContent />
+    </Suspense>
   );
 }

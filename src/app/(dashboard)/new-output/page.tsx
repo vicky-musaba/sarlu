@@ -55,6 +55,7 @@ export default function NewOutputPage() {
         observation: formData.observation,
         created_by: user?.id || '',
         created_by_username: user?.username || '',
+        created_at: new Date().toISOString(),
       });
       router.push('/history');
     } catch (error) {

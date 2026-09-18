@@ -45,23 +45,25 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           } else {
             console.warn('User not found in Firestore, creating default user');
             // Create default user in Firestore if not exists
-            const defaultUser = {
+            const defaultUser: AppUser = {
+              id: firebaseUser.uid,
               username: firebaseUser.email?.split('@')[0] || 'user',
               role: 'admin', // Default to admin for first user
               created_at: new Date().toISOString(),
             };
             // TODO: Create user in Firestore
-            setUser({ id: firebaseUser.uid, ...defaultUser });
+            setUser(defaultUser);
           }
         } catch (error) {
           console.error('Error fetching user data:', error);
           // Fallback: create default user with admin role
-          const defaultUser = {
+          const defaultUser: AppUser = {
+            id: firebaseUser.uid,
             username: firebaseUser.email?.split('@')[0] || 'user',
             role: 'admin',
             created_at: new Date().toISOString(),
           };
-          setUser({ id: firebaseUser.uid, ...defaultUser });
+          setUser(defaultUser);
         }
       } else {
         setUser(null);

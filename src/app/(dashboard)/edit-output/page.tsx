@@ -1,8 +1,8 @@
 'use client';
 
-import React, { useEffect, useState } from 'react';
-import { useRouter } from 'next/navigation';
-import { updateOutput, getAllCategories } from '@/lib/firestore';
+import React, { useEffect, useState, Suspense } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
+import { updateOutput, getAllCategories, getOutputById } from '@/lib/firestore';
 import { Output } from '@/types';
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/Button';
@@ -10,8 +10,9 @@ import { Input } from '@/components/ui/Input';
 import { Select } from '@/components/ui/Select';
 import { Card } from '@/components/ui/Card';
 
-export default function EditOutputPage() {
+function EditOutputContent() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const { user } = useAuth();
   const [loading, setLoading] = useState(false);
   const [categories, setCategories] = useState<Array<{ value: string; label: string }>>([]);
@@ -27,21 +28,32 @@ export default function EditOutputPage() {
   });
 
   useEffect(() => {
-    if (router.state) {
-      const outputData = router.state as Output;
-      setOutput(outputData);
-      setFormData({
-        category_id: outputData.category_id,
-        amount: outputData.amount.toString(),
-        description: outputData.description,
-        responsible: outputData.responsible,
-        payment_mode: outputData.payment_mode,
-        reference: outputData.reference,
-        observation: outputData.observation,
-      });
+    const outputId = searchParams.get('id');
+    if (outputId) {
+      loadOutput(outputId);
     }
     loadCategories();
-  }, [router]);
+  }, [searchParams]);
+
+  const loadOutput = async (id: string) => {
+    try {
+      const outputData = await getOutputById(id);
+      if (outputData) {
+        setOutput(outputData);
+        setFormData({
+          category_id: outputData.category_id,
+          amount: outputData.amount.toString(),
+          description: outputData.description,
+          responsible: outputData.responsible,
+          payment_mode: outputData.payment_mode,
+          reference: outputData.reference,
+          observation: outputData.observation,
+        });
+      }
+    } catch (error) {
+      console.error('Failed to load output:', error);
+    }
+  };
 
   const loadCategories = async () => {
     try {
@@ -199,5 +211,13 @@ export default function EditOutputPage() {
         </form>
       </Card>
     </div>
+  );
+}
+
+export default function EditOutputPage() {
+  return (
+    <Suspense fallback={<div className="flex items-center justify-center h-full">Chargement...</div>}>
+      <EditOutputContent />
+    </Suspense>
   );
 }

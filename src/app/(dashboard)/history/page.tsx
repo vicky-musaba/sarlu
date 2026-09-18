@@ -88,11 +88,11 @@ export default function HistoryPage() {
   };
 
   const handlePrint = (output: Output) => {
-    router.push('/print-receipt', { state: { output } });
+    router.push(`/print-receipt?id=${output.id}`);
   };
 
   const handleEdit = (output: Output) => {
-    router.push('/edit-output', { state: { output } });
+    router.push(`/edit-output?id=${output.id}`);
   };
 
   const resetFilters = () => {

@@ -15,8 +15,17 @@ import {
   runTransaction,
   serverTimestamp,
 } from 'firebase/firestore';
+
 import { db } from './firebase';
-import { User, Category, Output, CashBalance, CashEntry, AuditLog, CompanySettings } from '@/types';
+import {
+  User,
+  Category,
+  Output,
+  CashBalance,
+  CashEntry,
+  AuditLog,
+  CompanySettings,
+} from '@/types';
 
 // Collection names
 const COLLECTIONS = {
@@ -29,148 +38,323 @@ const COLLECTIONS = {
   COMPANY_SETTINGS: 'company_settings',
 } as const;
 
-// Helper to convert Firestore timestamp to string
-const timestampToString = (timestamp: any): string => {
-  if (!timestamp) return new Date().toISOString();
-  
-  // If it's already a string, return it
-  if (typeof timestamp === 'string') return timestamp;
-  
-  // If it's a number, convert to date
-  if (typeof timestamp === 'number') return new Date(timestamp).toISOString();
-  
-  // If it's a Firebase Timestamp object
-  if (timestamp.toDate && typeof timestamp.toDate === 'function') {
-    return timestamp.toDate().toISOString();
+// -----------------------------------------------------------------------------
+// Helpers
+// -----------------------------------------------------------------------------
+
+/**
+ * Convertit une valeur Firestore/date en string ISO.
+ */
+const timestampToString = (timestamp: unknown): string => {
+  if (!timestamp) {
+    return new Date().toISOString();
   }
-  
-  // Fallback
-  return new Date(timestamp).toISOString();
+
+  if (typeof timestamp === 'string') {
+    return timestamp;
+  }
+
+  if (typeof timestamp === 'number') {
+    return new Date(timestamp).toISOString();
+  }
+
+  if (
+    timestamp instanceof Timestamp ||
+    (typeof timestamp === 'object' &&
+      timestamp !== null &&
+      'toDate' in timestamp &&
+      typeof (timestamp as { toDate?: unknown }).toDate === 'function')
+  ) {
+    return (
+      timestamp as {
+        toDate: () => Date;
+      }
+    )
+      .toDate()
+      .toISOString();
+  }
+
+  return new Date(String(timestamp)).toISOString();
 };
 
-// Helper to convert string to Firestore timestamp
+/**
+ * Convertit une string ISO en Timestamp Firestore.
+ */
 const stringToTimestamp = (dateString: string): Timestamp => {
   return Timestamp.fromDate(new Date(dateString));
 };
 
-// Users
-export const createUser = async (userData: Omit<User, 'id'>): Promise<User> => {
-  const docRef = await addDoc(collection(db, COLLECTIONS.USERS), {
-    ...userData,
-    created_at: serverTimestamp(),
-  });
-  const docSnap = await getDoc(docRef);
-  return {
-    id: docRef.id,
-    ...docSnap.data(),
-    created_at: timestampToString(docSnap.data().created_at),
-  } as User;
+/**
+ * Vérifie qu'un rôle est valide.
+ */
+const normalizeRole = (role: unknown): User['role'] => {
+  if (role === 'admin' || role === 'cashier') {
+    return role;
+  }
+
+  throw new Error(`Rôle utilisateur invalide: ${String(role)}`);
 };
 
-export const getUser = async (userId: string): Promise<User | null> => {
+// -----------------------------------------------------------------------------
+// Users
+// -----------------------------------------------------------------------------
+
+export const createUser = async (
+  userData: Omit<User, 'id'>
+): Promise<User> => {
+  const docRef = await addDoc(collection(db, COLLECTIONS.USERS), {
+    ...userData,
+    role: normalizeRole(userData.role),
+    created_at: serverTimestamp(),
+  });
+
+  const docSnap = await getDoc(docRef);
+
+  if (!docSnap.exists()) {
+    throw new Error('Impossible de récupérer l’utilisateur créé.');
+  }
+
+  const data = docSnap.data();
+
+  return {
+    id: docRef.id,
+    username: String(data.username ?? ''),
+    role: normalizeRole(data.role),
+    created_at: timestampToString(data.created_at),
+  };
+};
+
+export const getUser = async (
+  userId: string
+): Promise<User | null> => {
   const docRef = doc(db, COLLECTIONS.USERS, userId);
   const docSnap = await getDoc(docRef);
-  if (!docSnap.exists()) return null;
+
+  if (!docSnap.exists()) {
+    return null;
+  }
+
+  const data = docSnap.data();
+
   return {
     id: docSnap.id,
-    ...docSnap.data(),
-    created_at: timestampToString(docSnap.data().created_at),
-  } as User;
+    username: String(data.username ?? ''),
+    role: normalizeRole(data.role),
+    created_at: timestampToString(data.created_at),
+  };
 };
 
 export const getAllUsers = async (): Promise<User[]> => {
-  const q = query(collection(db, COLLECTIONS.USERS), orderBy('created_at', 'desc'));
+  const q = query(
+    collection(db, COLLECTIONS.USERS),
+    orderBy('created_at', 'desc')
+  );
+
   const querySnapshot = await getDocs(q);
-  return querySnapshot.docs.map(doc => ({
-    id: doc.id,
-    ...doc.data(),
-    created_at: timestampToString(doc.data().created_at),
-  })) as User[];
+
+  return querySnapshot.docs.map((document) => {
+    const data = document.data();
+
+    return {
+      id: document.id,
+      username: String(data.username ?? ''),
+      role: normalizeRole(data.role),
+      created_at: timestampToString(data.created_at),
+    };
+  });
 };
 
-export const updateUser = async (userId: string, userData: Partial<User>): Promise<void> => {
+export const updateUser = async (
+  userId: string,
+  userData: Partial<User>
+): Promise<void> => {
   const docRef = doc(db, COLLECTIONS.USERS, userId);
-  await updateDoc(docRef, userData);
+
+  const dataToUpdate: Record<string, unknown> = {
+    ...userData,
+  };
+
+  delete dataToUpdate.id;
+
+  if ('role' in dataToUpdate) {
+    dataToUpdate.role = normalizeRole(dataToUpdate.role);
+  }
+
+  await updateDoc(docRef, dataToUpdate);
 };
 
-export const deleteUser = async (userId: string): Promise<void> => {
+export const deleteUser = async (
+  userId: string
+): Promise<void> => {
   const docRef = doc(db, COLLECTIONS.USERS, userId);
   await deleteDoc(docRef);
 };
 
+// -----------------------------------------------------------------------------
 // Categories
-export const createCategory = async (categoryData: Omit<Category, 'id'>): Promise<Category> => {
-  const docRef = await addDoc(collection(db, COLLECTIONS.CATEGORIES), {
-    ...categoryData,
-    created_at: serverTimestamp(),
-  });
+// -----------------------------------------------------------------------------
+
+export const createCategory = async (
+  categoryData: Omit<Category, 'id'>
+): Promise<Category> => {
+  const docRef = await addDoc(
+    collection(db, COLLECTIONS.CATEGORIES),
+    {
+      ...categoryData,
+      created_at: serverTimestamp(),
+    }
+  );
+
   const docSnap = await getDoc(docRef);
+
+  if (!docSnap.exists()) {
+    throw new Error('Impossible de récupérer la catégorie créée.');
+  }
+
+  const data = docSnap.data();
+
   return {
     id: docRef.id,
-    ...docSnap.data(),
-    created_at: timestampToString(docSnap.data().created_at),
-  } as Category;
+    name: String(data.name ?? ''),
+    is_default: Boolean(data.is_default),
+    created_at: timestampToString(data.created_at),
+  };
 };
 
 export const getAllCategories = async (): Promise<Category[]> => {
-  const q = query(collection(db, COLLECTIONS.CATEGORIES), orderBy('created_at', 'desc'));
+  const q = query(
+    collection(db, COLLECTIONS.CATEGORIES),
+    orderBy('created_at', 'desc')
+  );
+
   const querySnapshot = await getDocs(q);
-  return querySnapshot.docs.map(doc => ({
-    id: doc.id,
-    ...doc.data(),
-    created_at: timestampToString(doc.data().created_at),
-  })) as Category[];
+
+  return querySnapshot.docs.map((document) => {
+    const data = document.data();
+
+    return {
+      id: document.id,
+      name: String(data.name ?? ''),
+      is_default: Boolean(data.is_default),
+      created_at: timestampToString(data.created_at),
+    };
+  });
 };
 
-export const updateCategory = async (categoryId: string, categoryData: Partial<Category>): Promise<void> => {
+export const updateCategory = async (
+  categoryId: string,
+  categoryData: Partial<Category>
+): Promise<void> => {
   const docRef = doc(db, COLLECTIONS.CATEGORIES, categoryId);
-  await updateDoc(docRef, categoryData);
+
+  const dataToUpdate: Record<string, unknown> = {
+    ...categoryData,
+  };
+
+  delete dataToUpdate.id;
+
+  await updateDoc(docRef, dataToUpdate);
 };
 
-export const deleteCategory = async (categoryId: string): Promise<void> => {
+export const deleteCategory = async (
+  categoryId: string
+): Promise<void> => {
   const docRef = doc(db, COLLECTIONS.CATEGORIES, categoryId);
   await deleteDoc(docRef);
 };
 
+// -----------------------------------------------------------------------------
 // Outputs
-export const createOutput = async (outputData: Omit<Output, 'id' | 'number'>): Promise<Output> => {
+// -----------------------------------------------------------------------------
+
+export const createOutput = async (
+  inputOutputData: Omit<Output, 'id' | 'number'>
+): Promise<Output> => {
   return await runTransaction(db, async (transaction) => {
     // Get current balance
-    const balanceRef = doc(db, COLLECTIONS.CASH_BALANCE, 'current');
+    const balanceRef = doc(
+      db,
+      COLLECTIONS.CASH_BALANCE,
+      'current'
+    );
+
     const balanceDoc = await transaction.get(balanceRef);
 
     let currentBalance = 0;
     let totalOutputs = 0;
 
     if (balanceDoc.exists()) {
-      const balanceData = balanceDoc.data() as CashBalance;
-      currentBalance = balanceData.current_balance;
-      totalOutputs = balanceData.total_outputs;
+      const balanceData = balanceDoc.data();
+
+      currentBalance = Number(
+        balanceData.current_balance ?? 0
+      );
+
+      totalOutputs = Number(
+        balanceData.total_outputs ?? 0
+      );
     }
 
     // Generate output number
-    const outputsRef = collection(db, COLLECTIONS.OUTPUTS);
-    const outputsQuery = query(outputsRef, orderBy('number', 'desc'), limit(1));
+    const outputsRef = collection(
+      db,
+      COLLECTIONS.OUTPUTS
+    );
+
+    const outputsQuery = query(
+      outputsRef,
+      orderBy('number', 'desc'),
+      limit(1)
+    );
+
     const outputsSnapshot = await getDocs(outputsQuery);
+
     let nextNumber = 1;
+
     if (!outputsSnapshot.empty) {
-      const lastOutput = outputsSnapshot.docs[0].data() as Output;
-      const lastNumber = parseInt(lastOutput.number.replace('DEP-', ''));
-      nextNumber = lastNumber + 1;
+      const firstDocument = outputsSnapshot.docs[0];
+
+      if (firstDocument) {
+        const lastOutputData = firstDocument.data();
+        const lastNumberString = String(
+          lastOutputData.number ?? 'DEP-000000'
+        );
+
+        const lastNumber = parseInt(
+          lastNumberString.replace('DEP-', ''),
+          10
+        );
+
+        if (!Number.isNaN(lastNumber)) {
+          nextNumber = lastNumber + 1;
+        }
+      }
     }
-    const outputNumber = `DEP-${String(nextNumber).padStart(6, '0')}`;
+
+    const outputNumber = `DEP-${String(nextNumber).padStart(
+      6,
+      '0'
+    )}`;
+
+    // Update balance calculation
+    const newBalance =
+      currentBalance - Number(inputOutputData.amount);
+
+    const newTotalOutputs =
+      totalOutputs + Number(inputOutputData.amount);
 
     // Create output
-    const outputRef = await addDoc(collection(db, COLLECTIONS.OUTPUTS), {
-      ...outputData,
+    const outputRef = doc(
+      collection(db, COLLECTIONS.OUTPUTS)
+    );
+
+    transaction.set(outputRef, {
+      ...inputOutputData,
       number: outputNumber,
       created_at: serverTimestamp(),
     });
 
     // Update balance
-    const newBalance = currentBalance - outputData.amount;
-    const newTotalOutputs = totalOutputs + outputData.amount;
-
     if (balanceDoc.exists()) {
       transaction.update(balanceRef, {
         current_balance: newBalance,
@@ -185,57 +369,161 @@ export const createOutput = async (outputData: Omit<Output, 'id' | 'number'>): P
       });
     }
 
-    // Get the created output
-    const outputDoc = await getDoc(outputRef);
     return {
       id: outputRef.id,
-      ...outputDoc.data(),
+      ...inputOutputData,
       number: outputNumber,
-      created_at: timestampToString(outputDoc.data().created_at),
-    } as Output;
+      created_at: new Date().toISOString(),
+    };
   });
 };
 
 export const getAllOutputs = async (): Promise<Output[]> => {
-  const q = query(collection(db, COLLECTIONS.OUTPUTS), orderBy('date', 'desc'));
+  const q = query(
+    collection(db, COLLECTIONS.OUTPUTS),
+    orderBy('date', 'desc')
+  );
+
   const querySnapshot = await getDocs(q);
-  return querySnapshot.docs.map(doc => ({
-    id: doc.id,
-    ...doc.data(),
-    created_at: timestampToString(doc.data().created_at),
-  })) as Output[];
+
+  return querySnapshot.docs.map((document) => {
+    const data = document.data();
+
+    return {
+      id: document.id,
+      number: String(data.number ?? ''),
+      date: String(data.date ?? ''),
+      category_id: String(data.category_id ?? ''),
+      category_name: String(data.category_name ?? ''),
+      description: String(data.description ?? ''),
+      amount: Number(data.amount ?? 0),
+      responsible: String(data.responsible ?? ''),
+      payment_mode: String(data.payment_mode ?? ''),
+      reference: String(data.reference ?? ''),
+      observation: String(data.observation ?? ''),
+      created_by: String(data.created_by ?? ''),
+      created_by_username: String(
+        data.created_by_username ?? ''
+      ),
+      created_at: timestampToString(data.created_at),
+    };
+  });
 };
 
-export const getOutputsByDateRange = async (startDate: string, endDate: string): Promise<Output[]> => {
+export const getOutputById = async (
+  id: string
+): Promise<Output | null> => {
+  const docRef = doc(db, COLLECTIONS.OUTPUTS, id);
+  const docSnap = await getDoc(docRef);
+
+  if (!docSnap.exists()) {
+    return null;
+  }
+
+  const data = docSnap.data();
+
+  return {
+    id: docSnap.id,
+    number: String(data.number ?? ''),
+    date: String(data.date ?? ''),
+    category_id: String(data.category_id ?? ''),
+    category_name: String(data.category_name ?? ''),
+    description: String(data.description ?? ''),
+    amount: Number(data.amount ?? 0),
+    responsible: String(data.responsible ?? ''),
+    payment_mode: String(data.payment_mode ?? ''),
+    reference: String(data.reference ?? ''),
+    observation: String(data.observation ?? ''),
+    created_by: String(data.created_by ?? ''),
+    created_by_username: String(
+      data.created_by_username ?? ''
+    ),
+    created_at: timestampToString(data.created_at),
+  };
+};
+
+export const getOutputsByDateRange = async (
+  startDate: string,
+  endDate: string
+): Promise<Output[]> => {
   const q = query(
     collection(db, COLLECTIONS.OUTPUTS),
     where('date', '>=', startDate),
     where('date', '<=', endDate),
     orderBy('date', 'desc')
   );
+
   const querySnapshot = await getDocs(q);
-  return querySnapshot.docs.map(doc => ({
-    id: doc.id,
-    ...doc.data(),
-    created_at: timestampToString(doc.data().created_at),
-  })) as Output[];
+
+  return querySnapshot.docs.map((document) => {
+    const data = document.data();
+
+    return {
+      id: document.id,
+      number: String(data.number ?? ''),
+      date: String(data.date ?? ''),
+      category_id: String(data.category_id ?? ''),
+      category_name: String(data.category_name ?? ''),
+      description: String(data.description ?? ''),
+      amount: Number(data.amount ?? 0),
+      responsible: String(data.responsible ?? ''),
+      payment_mode: String(data.payment_mode ?? ''),
+      reference: String(data.reference ?? ''),
+      observation: String(data.observation ?? ''),
+      created_by: String(data.created_by ?? ''),
+      created_by_username: String(
+        data.created_by_username ?? ''
+      ),
+      created_at: timestampToString(data.created_at),
+    };
+  });
 };
 
-export const updateOutput = async (outputId: string, outputData: Partial<Output>): Promise<void> => {
+export const updateOutput = async (
+  outputId: string,
+  outputData: Partial<Output>
+): Promise<void> => {
   const docRef = doc(db, COLLECTIONS.OUTPUTS, outputId);
-  await updateDoc(docRef, outputData);
+
+  const dataToUpdate: Record<string, unknown> = {
+    ...outputData,
+  };
+
+  delete dataToUpdate.id;
+
+  await updateDoc(docRef, dataToUpdate);
 };
 
-export const deleteOutput = async (outputId: string, amount: number): Promise<void> => {
+export const deleteOutput = async (
+  outputId: string,
+  amount: number
+): Promise<void> => {
   return await runTransaction(db, async (transaction) => {
     // Get current balance
-    const balanceRef = doc(db, COLLECTIONS.CASH_BALANCE, 'current');
+    const balanceRef = doc(
+      db,
+      COLLECTIONS.CASH_BALANCE,
+      'current'
+    );
+
     const balanceDoc = await transaction.get(balanceRef);
 
     if (balanceDoc.exists()) {
-      const balanceData = balanceDoc.data() as CashBalance;
-      const newBalance = balanceData.current_balance + amount;
-      const newTotalOutputs = balanceData.total_outputs - amount;
+      const balanceData = balanceDoc.data();
+
+      const currentBalance = Number(
+        balanceData.current_balance ?? 0
+      );
+
+      const totalOutputs = Number(
+        balanceData.total_outputs ?? 0
+      );
+
+      const newBalance =
+        currentBalance + Number(amount);
+
+      const newTotalOutputs =
+        totalOutputs - Number(amount);
 
       transaction.update(balanceRef, {
         current_balance: newBalance,
@@ -244,21 +532,54 @@ export const deleteOutput = async (outputId: string, amount: number): Promise<vo
     }
 
     // Delete output
-    const outputRef = doc(db, COLLECTIONS.OUTPUTS, outputId);
+    const outputRef = doc(
+      db,
+      COLLECTIONS.OUTPUTS,
+      outputId
+    );
+
     transaction.delete(outputRef);
   });
 };
 
+// -----------------------------------------------------------------------------
 // Cash Balance
-export const getCashBalance = async (): Promise<CashBalance | null> => {
-  const docRef = doc(db, COLLECTIONS.CASH_BALANCE, 'current');
+// -----------------------------------------------------------------------------
+
+export const getCashBalance = async (): Promise<
+  CashBalance | null
+> => {
+  const docRef = doc(
+    db,
+    COLLECTIONS.CASH_BALANCE,
+    'current'
+  );
+
   const docSnap = await getDoc(docRef);
-  if (!docSnap.exists()) return null;
-  return docSnap.data() as CashBalance;
+
+  if (!docSnap.exists()) {
+    return null;
+  }
+
+  const data = docSnap.data();
+
+  return {
+    initial_balance: Number(data.initial_balance ?? 0),
+    current_balance: Number(data.current_balance ?? 0),
+    total_entries: Number(data.total_entries ?? 0),
+    total_outputs: Number(data.total_outputs ?? 0),
+  };
 };
 
-export const setInitialBalance = async (amount: number): Promise<void> => {
-  const docRef = doc(db, COLLECTIONS.CASH_BALANCE, 'current');
+export const setInitialBalance = async (
+  amount: number
+): Promise<void> => {
+  const docRef = doc(
+    db,
+    COLLECTIONS.CASH_BALANCE,
+    'current'
+  );
+
   await setDoc(docRef, {
     initial_balance: amount,
     current_balance: amount,
@@ -267,37 +588,68 @@ export const setInitialBalance = async (amount: number): Promise<void> => {
   });
 };
 
-export const updateCashBalance = async (balanceData: Partial<CashBalance>): Promise<void> => {
-  const docRef = doc(db, COLLECTIONS.CASH_BALANCE, 'current');
+export const updateCashBalance = async (
+  balanceData: Partial<CashBalance>
+): Promise<void> => {
+  const docRef = doc(
+    db,
+    COLLECTIONS.CASH_BALANCE,
+    'current'
+  );
+
   await updateDoc(docRef, balanceData);
 };
 
+// -----------------------------------------------------------------------------
 // Cash Entries
-export const createCashEntry = async (entryData: Omit<CashEntry, 'id'>): Promise<CashEntry> => {
+// -----------------------------------------------------------------------------
+
+export const createCashEntry = async (
+  inputEntryData: Omit<CashEntry, 'id'>
+): Promise<CashEntry> => {
   return await runTransaction(db, async (transaction) => {
     // Get current balance
-    const balanceRef = doc(db, COLLECTIONS.CASH_BALANCE, 'current');
+    const balanceRef = doc(
+      db,
+      COLLECTIONS.CASH_BALANCE,
+      'current'
+    );
+
     const balanceDoc = await transaction.get(balanceRef);
 
     let currentBalance = 0;
     let totalEntries = 0;
 
     if (balanceDoc.exists()) {
-      const balanceData = balanceDoc.data() as CashBalance;
-      currentBalance = balanceData.current_balance;
-      totalEntries = balanceData.total_entries;
+      const balanceData = balanceDoc.data();
+
+      currentBalance = Number(
+        balanceData.current_balance ?? 0
+      );
+
+      totalEntries = Number(
+        balanceData.total_entries ?? 0
+      );
     }
 
+    // Update balance calculation
+    const newBalance =
+      currentBalance + Number(inputEntryData.amount);
+
+    const newTotalEntries =
+      totalEntries + Number(inputEntryData.amount);
+
     // Create entry
-    const entryRef = await addDoc(collection(db, COLLECTIONS.CASH_ENTRIES), {
-      ...entryData,
+    const entryRef = doc(
+      collection(db, COLLECTIONS.CASH_ENTRIES)
+    );
+
+    transaction.set(entryRef, {
+      ...inputEntryData,
       created_at: serverTimestamp(),
     });
 
     // Update balance
-    const newBalance = currentBalance + entryData.amount;
-    const newTotalEntries = totalEntries + entryData.amount;
-
     if (balanceDoc.exists()) {
       transaction.update(balanceRef, {
         current_balance: newBalance,
@@ -312,75 +664,189 @@ export const createCashEntry = async (entryData: Omit<CashEntry, 'id'>): Promise
       });
     }
 
-    // Get the created entry
-    const entryDoc = await getDoc(entryRef);
     return {
       id: entryRef.id,
-      ...entryDoc.data(),
-      created_at: timestampToString(entryDoc.data().created_at),
-    } as CashEntry;
+      ...inputEntryData,
+      created_at: new Date().toISOString(),
+    };
   });
 };
 
-export const getAllCashEntries = async (): Promise<CashEntry[]> => {
-  const q = query(collection(db, COLLECTIONS.CASH_ENTRIES), orderBy('date', 'desc'));
+export const getAllCashEntries = async (): Promise<
+  CashEntry[]
+> => {
+  const q = query(
+    collection(db, COLLECTIONS.CASH_ENTRIES),
+    orderBy('date', 'desc')
+  );
+
   const querySnapshot = await getDocs(q);
-  return querySnapshot.docs.map(doc => ({
-    id: doc.id,
-    ...doc.data(),
-    created_at: timestampToString(doc.data().created_at),
-  })) as CashEntry[];
+
+  return querySnapshot.docs.map((document) => {
+    const data = document.data();
+
+    return {
+      id: document.id,
+      date: String(data.date ?? ''),
+      amount: Number(data.amount ?? 0),
+      description: String(data.description ?? ''),
+      created_by: String(data.created_by ?? ''),
+      created_at: timestampToString(data.created_at),
+    };
+  });
 };
 
+// -----------------------------------------------------------------------------
 // Audit Logs
-export const createAuditLog = async (logData: Omit<AuditLog, 'id'>): Promise<AuditLog> => {
-  const docRef = await addDoc(collection(db, COLLECTIONS.AUDIT_LOGS), {
-    ...logData,
-    created_at: serverTimestamp(),
-  });
+// -----------------------------------------------------------------------------
+
+export const createAuditLog = async (
+  logData: Omit<AuditLog, 'id'>
+): Promise<AuditLog> => {
+  const docRef = await addDoc(
+    collection(db, COLLECTIONS.AUDIT_LOGS),
+    {
+      ...logData,
+      created_at: serverTimestamp(),
+    }
+  );
+
   const docSnap = await getDoc(docRef);
+
+  if (!docSnap.exists()) {
+    throw new Error(
+      'Impossible de récupérer le journal d’audit créé.'
+    );
+  }
+
+  const data = docSnap.data();
+
   return {
     id: docRef.id,
-    ...docSnap.data(),
-    created_at: timestampToString(docSnap.data().created_at),
-  } as AuditLog;
+    date: String(data.date ?? ''),
+    time: String(data.time ?? ''),
+    user_id: String(data.user_id ?? ''),
+    username: String(data.username ?? ''),
+    role: String(data.role ?? ''),
+    action: String(data.action ?? ''),
+    element: String(data.element ?? ''),
+    output_number:
+      data.output_number !== undefined &&
+      data.output_number !== null
+        ? String(data.output_number)
+        : null,
+    old_value:
+      data.old_value !== undefined &&
+      data.old_value !== null
+        ? String(data.old_value)
+        : null,
+    new_value:
+      data.new_value !== undefined &&
+      data.new_value !== null
+        ? String(data.new_value)
+        : null,
+  };
 };
 
-export const getAllAuditLogs = async (): Promise<AuditLog[]> => {
-  const q = query(collection(db, COLLECTIONS.AUDIT_LOGS), orderBy('created_at', 'desc'));
+export const getAllAuditLogs = async (): Promise<
+  AuditLog[]
+> => {
+  const q = query(
+    collection(db, COLLECTIONS.AUDIT_LOGS),
+    orderBy('created_at', 'desc')
+  );
+
   const querySnapshot = await getDocs(q);
-  return querySnapshot.docs.map(doc => ({
-    id: doc.id,
-    ...doc.data(),
-    created_at: timestampToString(doc.data().created_at),
-  })) as AuditLog[];
+
+  return querySnapshot.docs.map((document) => {
+    const data = document.data();
+
+    return {
+      id: document.id,
+      date: String(data.date ?? ''),
+      time: String(data.time ?? ''),
+      user_id: String(data.user_id ?? ''),
+      username: String(data.username ?? ''),
+      role: String(data.role ?? ''),
+      action: String(data.action ?? ''),
+      element: String(data.element ?? ''),
+      output_number:
+        data.output_number !== undefined &&
+        data.output_number !== null
+          ? String(data.output_number)
+          : null,
+      old_value:
+        data.old_value !== undefined &&
+        data.old_value !== null
+          ? String(data.old_value)
+          : null,
+      new_value:
+        data.new_value !== undefined &&
+        data.new_value !== null
+          ? String(data.new_value)
+          : null,
+    };
+  });
 };
 
+// -----------------------------------------------------------------------------
 // Company Settings
-export const getCompanySettings = async (): Promise<CompanySettings | null> => {
-  const docRef = doc(db, COLLECTIONS.COMPANY_SETTINGS, 'current');
+// -----------------------------------------------------------------------------
+
+export const getCompanySettings = async (): Promise<
+  CompanySettings | null
+> => {
+  const docRef = doc(
+    db,
+    COLLECTIONS.COMPANY_SETTINGS,
+    'current'
+  );
+
   const docSnap = await getDoc(docRef);
-  if (!docSnap.exists()) return null;
+
+  if (!docSnap.exists()) {
+    return null;
+  }
+
+  const data = docSnap.data();
+
   return {
     id: docSnap.id,
-    ...docSnap.data(),
-    updated_at: timestampToString(docSnap.data().updated_at),
-  } as CompanySettings;
+    name: String(data.name ?? ''),
+    logo_path:
+      data.logo_path !== undefined &&
+      data.logo_path !== null
+        ? String(data.logo_path)
+        : null,
+    address: String(data.address ?? ''),
+    phone: String(data.phone ?? ''),
+    email: String(data.email ?? ''),
+    currency: String(data.currency ?? ''),
+    updated_at: timestampToString(data.updated_at),
+  };
 };
 
-export const updateCompanySettings = async (settingsData: Partial<CompanySettings>): Promise<void> => {
-  const docRef = doc(db, COLLECTIONS.COMPANY_SETTINGS, 'current');
+export const updateCompanySettings = async (
+  settingsData: Partial<CompanySettings>
+): Promise<void> => {
+  const docRef = doc(
+    db,
+    COLLECTIONS.COMPANY_SETTINGS,
+    'current'
+  );
+
+  const dataToUpdate: Record<string, unknown> = {
+    ...settingsData,
+    updated_at: serverTimestamp(),
+  };
+
+  delete dataToUpdate.id;
+
   const docSnap = await getDoc(docRef);
 
   if (docSnap.exists()) {
-    await updateDoc(docRef, {
-      ...settingsData,
-      updated_at: serverTimestamp(),
-    });
+    await updateDoc(docRef, dataToUpdate);
   } else {
-    await setDoc(docRef, {
-      ...settingsData,
-      updated_at: serverTimestamp(),
-    });
+    await setDoc(docRef, dataToUpdate);
   }
 };

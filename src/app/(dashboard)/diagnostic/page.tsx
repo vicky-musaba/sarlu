@@ -2,12 +2,12 @@
 
 import React, { useEffect, useState } from 'react';
 import { getAllUsers, getAllCategories, getCashBalance } from '@/lib/firestore';
-import { User } from '@/types';
+import { User, Category } from '@/types';
 import { Card } from '@/components/ui/Card';
 
 export default function DiagnosticPage() {
   const [users, setUsers] = useState<User[]>([]);
-  const [categories, setCategories] = useState([]);
+  const [categories, setCategories] = useState<Category[]>([]);
   const [balance, setBalance] = useState<any>(null);
   const [loading, setLoading] = useState(true);
 
@@ -23,7 +23,7 @@ export default function DiagnosticPage() {
         getCashBalance(),
       ]);
       setUsers(usersData);
-      setCategories(categoriesData);
+      setCategories(categoriesData as Category[]);
       setBalance(balanceData);
     } catch (error) {
       console.error('Failed to load diagnostic data:', error);
@@ -63,7 +63,7 @@ export default function DiagnosticPage() {
         <p className="text-gray-600">Nombre de catégories: {categories.length}</p>
         {categories.length > 0 && (
           <div className="mt-4 space-y-2">
-            {categories.slice(0, 5).map((cat) => (
+            {categories.slice(0, 5).map((cat: any) => (
               <div key={cat.id} className="p-2 bg-gray-50 rounded">
                 {cat.name} {cat.is_default ? '(par défaut)' : '(personnalisée)'}
               </div>
