@@ -71,62 +71,64 @@ export default function NewOutputPage() {
       <h1 className="text-3xl font-bold text-gray-800">Nouvelle Sortie</h1>
 
       <Card>
-        <form onSubmit={handleSubmit} className="space-y-6">
-          <Select
-            label="Catégorie"
-            value={formData.category_id}
-            onChange={(e) => setFormData({ ...formData, category_id: e.target.value })}
-            options={categories}
-            required
-          />
+        <form onSubmit={handleSubmit} className="space-y-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <Select
+              label="Catégorie"
+              value={formData.category_id}
+              onChange={(e) => setFormData({ ...formData, category_id: e.target.value })}
+              options={categories}
+              required
+            />
 
-          <Input
-            label="Montant"
-            type="number"
-            value={formData.amount}
-            onChange={(e) => setFormData({ ...formData, amount: e.target.value })}
-            placeholder="Entrez le montant"
-            required
-            min="0"
-            step="0.01"
-          />
+            <Input
+              label="Montant"
+              type="number"
+              value={formData.amount}
+              onChange={(e) => setFormData({ ...formData, amount: e.target.value })}
+              placeholder="Montant"
+              required
+              min="0"
+              step="0.01"
+            />
 
-          <Input
-            label="Description / Motif"
-            value={formData.description}
-            onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-            placeholder="Entrez la description"
-            required
-          />
+            <Input
+              label="Description"
+              value={formData.description}
+              onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+              placeholder="Motif"
+              required
+            />
 
-          <Input
-            label="Responsable"
-            value={formData.responsible}
-            onChange={(e) => setFormData({ ...formData, responsible: e.target.value })}
-            placeholder="Entrez le responsable"
-            required
-          />
+            <Input
+              label="Responsable"
+              value={formData.responsible}
+              onChange={(e) => setFormData({ ...formData, responsible: e.target.value })}
+              placeholder="Responsable"
+              required
+            />
 
-          <Select
-            label="Mode de paiement"
-            value={formData.payment_mode}
-            onChange={(e) => setFormData({ ...formData, payment_mode: e.target.value })}
-            options={[
-              { value: 'especes', label: 'Espèces' },
-              { value: 'cheque', label: 'Chèque' },
-              { value: 'virement', label: 'Virement' },
-              { value: 'carte', label: 'Carte bancaire' },
-              { value: 'autre', label: 'Autre' },
-            ]}
-            required
-          />
+            <Select
+              label="Mode paiement"
+              value={formData.payment_mode}
+              onChange={(e) => setFormData({ ...formData, payment_mode: e.target.value })}
+              options={[
+                { value: 'especes', label: 'Espèces' },
+                { value: 'cheque', label: 'Chèque' },
+                { value: 'virement', label: 'Virement' },
+                { value: 'carte', label: 'Carte' },
+                { value: 'autre', label: 'Autre' },
+              ]}
+              required
+            />
 
-          <Input
-            label="Référence (optionnel)"
-            value={formData.reference}
-            onChange={(e) => setFormData({ ...formData, reference: e.target.value })}
-            placeholder="Numéro de référence"
-          />
+            <Input
+              label="Référence"
+              value={formData.reference}
+              onChange={(e) => setFormData({ ...formData, reference: e.target.value })}
+              placeholder="Référence (optionnel)"
+            />
+          </div>
 
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -136,14 +138,14 @@ export default function NewOutputPage() {
               className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
               value={formData.observation}
               onChange={(e) => setFormData({ ...formData, observation: e.target.value })}
-              placeholder="Observations supplémentaires"
-              rows={3}
+              placeholder="Observations"
+              rows={2}
             />
           </div>
 
           <div className="flex space-x-4">
             <Button type="submit" disabled={loading}>
-              {loading ? 'Création...' : 'Créer la sortie'}
+              {loading ? 'Création...' : 'Créer'}
             </Button>
             <Button
               type="button"
