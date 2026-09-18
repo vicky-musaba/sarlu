@@ -21,6 +21,7 @@ export default function DashboardPage() {
   const [stats, setStats] = useState<DashboardStats | null>(null);
   const [companySettings, setCompanySettings] = useState<CompanySettings | null>(null);
   const [statsByCurrency, setStatsByCurrency] = useState<StatsByCurrency>({});
+  const [outputsByCurrency, setOutputsByCurrency] = useState<Record<string, Output[]>>({});
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -101,6 +102,16 @@ export default function DashboardPage() {
       setStatsByCurrency(statsByCurrency);
 
       // Group outputs by currency for display
+      const outputsByCurrencyData = outputs.reduce((acc, output) => {
+        const currency = output.currency || '$';
+        if (!acc[currency]) {
+          acc[currency] = [];
+        }
+        acc[currency].push(output);
+        return acc;
+      }, {} as Record<string, Output[]>);
+
+      setOutputsByCurrency(outputsByCurrencyData);
       const outputsByCurrency = outputs.reduce((acc, output) => {
         const currency = output.currency || '$';
         if (!acc[currency]) {
