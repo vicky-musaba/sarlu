@@ -10,7 +10,7 @@ const menuItems = [
   { path: '/new-output', icon: '💰', label: 'Nouvelle sortie', roles: ['admin', 'cashier'] },
   { path: '/validation', icon: '✅', label: 'Validation', roles: ['admin', 'supervisor'] },
   { path: '/history', icon: '📋', label: 'Historique', roles: ['admin', 'supervisor', 'auditor', 'cashier'] },
-  { path: '/reports', icon: '📊', label: 'Rapports', roles: ['admin', 'supervisor', 'auditor', 'cashier'] },
+  { path: '/reports', icon: '📊', label: 'Rapports', roles: ['admin', 'auditor'] },
   { path: '/categories', icon: '🏷️', label: 'Catégories', roles: ['admin'] },
   { path: '/cash', icon: '💵', label: 'Caisse', roles: ['admin', 'supervisor', 'auditor', 'cashier'] },
   { path: '/audit', icon: '🧾', label: 'Journal d\'audit', roles: ['admin', 'auditor'] },
