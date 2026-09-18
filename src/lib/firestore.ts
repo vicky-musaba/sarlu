@@ -88,7 +88,7 @@ const stringToTimestamp = (dateString: string): Timestamp => {
  * Vérifie qu'un rôle est valide.
  */
 const normalizeRole = (role: unknown): User['role'] => {
-  if (role === 'admin' || role === 'cashier') {
+  if (role === 'admin' || role === 'supervisor' || role === 'cashier') {
     return role;
   }
 
@@ -268,33 +268,9 @@ export const deleteCategory = async (
 // -----------------------------------------------------------------------------
 
 export const createOutput = async (
-  inputOutputData: Omit<Output, 'id' | 'number'>
+  inputOutputData: Omit<Output, 'id' | 'number' | 'status' | 'approved_by' | 'approved_by_username' | 'approved_at' | 'rejection_reason'>
 ): Promise<Output> => {
   return await runTransaction(db, async (transaction) => {
-    // Get current balance
-    const balanceRef = doc(
-      db,
-      COLLECTIONS.CASH_BALANCE,
-      'current'
-    );
-
-    const balanceDoc = await transaction.get(balanceRef);
-
-    let currentBalance = 0;
-    let totalOutputs = 0;
-
-    if (balanceDoc.exists()) {
-      const balanceData = balanceDoc.data();
-
-      currentBalance = Number(
-        balanceData.current_balance ?? 0
-      );
-
-      totalOutputs = Number(
-        balanceData.total_outputs ?? 0
-      );
-    }
-
     // Generate output number
     const outputsRef = collection(
       db,
@@ -336,14 +312,7 @@ export const createOutput = async (
       '0'
     )}`;
 
-    // Update balance calculation
-    const newBalance =
-      currentBalance - Number(inputOutputData.amount);
-
-    const newTotalOutputs =
-      totalOutputs + Number(inputOutputData.amount);
-
-    // Create output
+    // Create output with pending status
     const outputRef = doc(
       collection(db, COLLECTIONS.OUTPUTS)
     );
@@ -351,7 +320,61 @@ export const createOutput = async (
     transaction.set(outputRef, {
       ...inputOutputData,
       number: outputNumber,
+      status: 'pending',
       created_at: serverTimestamp(),
+    });
+
+    return {
+      id: outputRef.id,
+      ...inputOutputData,
+      number: outputNumber,
+      status: 'pending',
+      created_at: new Date().toISOString(),
+    };
+  });
+};
+
+export const approveOutput = async (
+  outputId: string,
+  approverId: string,
+  approverUsername: string
+): Promise<void> => {
+  return await runTransaction(db, async (transaction) => {
+    const outputRef = doc(db, COLLECTIONS.OUTPUTS, outputId);
+    const outputDoc = await transaction.get(outputRef);
+
+    if (!outputDoc.exists()) {
+      throw new Error('Output not found');
+    }
+
+    const outputData = outputDoc.data();
+    if (outputData.status !== 'pending') {
+      throw new Error('Output is not pending');
+    }
+
+    // Get current balance
+    const balanceRef = doc(db, COLLECTIONS.CASH_BALANCE, 'current');
+    const balanceDoc = await transaction.get(balanceRef);
+
+    let currentBalance = 0;
+    let totalOutputs = 0;
+
+    if (balanceDoc.exists()) {
+      const balanceData = balanceDoc.data();
+      currentBalance = Number(balanceData.current_balance ?? 0);
+      totalOutputs = Number(balanceData.total_outputs ?? 0);
+    }
+
+    // Update balance calculation
+    const newBalance = currentBalance - Number(outputData.amount);
+    const newTotalOutputs = totalOutputs + Number(outputData.amount);
+
+    // Update output status
+    transaction.update(outputRef, {
+      status: 'approved',
+      approved_by: approverId,
+      approved_by_username: approverUsername,
+      approved_at: serverTimestamp(),
     });
 
     // Update balance
@@ -368,12 +391,55 @@ export const createOutput = async (
         total_outputs: newTotalOutputs,
       });
     }
+  });
+};
 
+export const rejectOutput = async (
+  outputId: string,
+  approverId: string,
+  approverUsername: string,
+  rejectionReason: string
+): Promise<void> => {
+  const outputRef = doc(db, COLLECTIONS.OUTPUTS, outputId);
+  await updateDoc(outputRef, {
+    status: 'rejected',
+    approved_by: approverId,
+    approved_by_username: approverUsername,
+    approved_at: serverTimestamp(),
+    rejection_reason: rejectionReason,
+  });
+};
+
+export const getPendingOutputs = async (): Promise<Output[]> => {
+  const q = query(
+    collection(db, COLLECTIONS.OUTPUTS),
+    where('status', '==', 'pending'),
+    orderBy('created_at', 'desc')
+  );
+
+  const querySnapshot = await getDocs(q);
+  return querySnapshot.docs.map((document) => {
+    const data = document.data();
     return {
-      id: outputRef.id,
-      ...inputOutputData,
-      number: outputNumber,
-      created_at: new Date().toISOString(),
+      id: document.id,
+      number: String(data.number ?? ''),
+      date: String(data.date ?? ''),
+      category_id: String(data.category_id ?? ''),
+      category_name: String(data.category_name ?? ''),
+      description: String(data.description ?? ''),
+      amount: Number(data.amount ?? 0),
+      responsible: String(data.responsible ?? ''),
+      payment_mode: String(data.payment_mode ?? ''),
+      reference: String(data.reference ?? ''),
+      observation: String(data.observation ?? ''),
+      created_by: String(data.created_by ?? ''),
+      created_by_username: String(data.created_by_username ?? ''),
+      created_at: timestampToString(data.created_at),
+      status: 'pending' as const,
+      approved_by: data.approved_by ? String(data.approved_by) : undefined,
+      approved_by_username: data.approved_by_username ? String(data.approved_by_username) : undefined,
+      approved_at: data.approved_at ? timestampToString(data.approved_at) : undefined,
+      rejection_reason: data.rejection_reason ? String(data.rejection_reason) : undefined,
     };
   });
 };
@@ -406,6 +472,11 @@ export const getAllOutputs = async (): Promise<Output[]> => {
         data.created_by_username ?? ''
       ),
       created_at: timestampToString(data.created_at),
+      status: (data.status as 'pending' | 'approved' | 'rejected') || 'approved',
+      approved_by: data.approved_by ? String(data.approved_by) : undefined,
+      approved_by_username: data.approved_by_username ? String(data.approved_by_username) : undefined,
+      approved_at: data.approved_at ? timestampToString(data.approved_at) : undefined,
+      rejection_reason: data.rejection_reason ? String(data.rejection_reason) : undefined,
     };
   });
 };
@@ -439,6 +510,11 @@ export const getOutputById = async (
       data.created_by_username ?? ''
     ),
     created_at: timestampToString(data.created_at),
+    status: (data.status as 'pending' | 'approved' | 'rejected') || 'approved',
+    approved_by: data.approved_by ? String(data.approved_by) : undefined,
+    approved_by_username: data.approved_by_username ? String(data.approved_by_username) : undefined,
+    approved_at: data.approved_at ? timestampToString(data.approved_at) : undefined,
+    rejection_reason: data.rejection_reason ? String(data.rejection_reason) : undefined,
   };
 };
 
@@ -475,6 +551,11 @@ export const getOutputsByDateRange = async (
         data.created_by_username ?? ''
       ),
       created_at: timestampToString(data.created_at),
+      status: (data.status as 'pending' | 'approved' | 'rejected') || 'approved',
+      approved_by: data.approved_by ? String(data.approved_by) : undefined,
+      approved_by_username: data.approved_by_username ? String(data.approved_by_username) : undefined,
+      approved_at: data.approved_at ? timestampToString(data.approved_at) : undefined,
+      rejection_reason: data.rejection_reason ? String(data.rejection_reason) : undefined,
     };
   });
 };

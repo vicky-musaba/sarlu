@@ -1,7 +1,7 @@
 export interface User {
   id: string;
   username: string;
-  role: 'admin' | 'cashier';
+  role: 'admin' | 'supervisor' | 'cashier';
   created_at: string;
 }
 
@@ -27,6 +27,11 @@ export interface Output {
   created_by: string;
   created_by_username: string;
   created_at: string;
+  status: 'pending' | 'approved' | 'rejected';
+  approved_by?: string;
+  approved_by_username?: string;
+  approved_at?: string;
+  rejection_reason?: string;
 }
 
 export interface CashBalance {

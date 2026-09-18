@@ -185,6 +185,7 @@ export default function HistoryPage() {
               <tr>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">N°</th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Date</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Statut</th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Catégorie</th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Description</th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Montant</th>
@@ -200,6 +201,11 @@ export default function HistoryPage() {
                   <tr key={output.id} className="hover:bg-gray-50">
                     <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{output.number}</td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{output.date}</td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm">
+                      {output.status === 'pending' && <span className="px-2 py-1 text-xs font-medium bg-yellow-100 text-yellow-800 rounded">En attente</span>}
+                      {output.status === 'approved' && <span className="px-2 py-1 text-xs font-medium bg-green-100 text-green-800 rounded">Approuvé</span>}
+                      {output.status === 'rejected' && <span className="px-2 py-1 text-xs font-medium bg-red-100 text-red-800 rounded">Rejeté</span>}
+                    </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{output.category_name}</td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{output.description}</td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm font-bold text-gray-900">{formatCurrency(output.amount)}</td>
@@ -227,7 +233,7 @@ export default function HistoryPage() {
                 ))
               ) : (
                 <tr>
-                  <td colSpan={9} className="px-6 py-4 text-center text-sm text-gray-500">
+                  <td colSpan={10} className="px-6 py-4 text-center text-sm text-gray-500">
                     Aucune sortie trouvée
                   </td>
                 </tr>

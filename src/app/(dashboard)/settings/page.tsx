@@ -270,6 +270,7 @@ export default function SettingsPage() {
                 onChange={(e) => setUserFormData({ ...userFormData, role: e.target.value })}
                 options={[
                   { value: 'admin', label: 'Administrateur' },
+                  { value: 'supervisor', label: 'Superviseur' },
                   { value: 'cashier', label: 'Caissière' },
                 ]}
               />
@@ -309,6 +310,7 @@ export default function SettingsPage() {
                 onChange={(e) => setUserFormData({ ...userFormData, role: e.target.value })}
                 options={[
                   { value: 'admin', label: 'Administrateur' },
+                  { value: 'supervisor', label: 'Superviseur' },
                   { value: 'cashier', label: 'Caissière' },
                 ]}
               />
