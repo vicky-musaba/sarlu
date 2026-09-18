@@ -192,6 +192,7 @@ export default function SettingsPage() {
             onChange={(e) => setSettingsFormData({ ...settingsFormData, currency: e.target.value })}
             options={[
               { value: '$', label: 'Dollar ($)' },
+              { value: 'CDF', label: 'Franc Congolais (CDF)' },
               { value: '€', label: 'Euro (€)' },
               { value: '£', label: 'Livre (£)' },
               { value: 'FC', label: 'Franc Congolais (FC)' },

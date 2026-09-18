@@ -1,17 +1,19 @@
 'use client';
 
 import React, { useEffect, useState } from 'react';
-import { getCashBalance, getAllCashEntries, createCashEntry, setInitialBalance } from '@/lib/firestore';
-import { CashBalance, CashEntry } from '@/types';
+import { getCashBalance, getAllCashEntries, createCashEntry, setInitialBalance, getCompanySettings } from '@/lib/firestore';
+import { CashBalance, CashEntry, CompanySettings } from '@/types';
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 import { Card } from '@/components/ui/Card';
+import { formatCurrency as formatCurrencyUtil } from '@/utils/currency';
 
 export default function CashPage() {
   const { isAdmin } = useAuth();
   const [balance, setBalance] = useState<CashBalance | null>(null);
   const [entries, setEntries] = useState<CashEntry[]>([]);
+  const [companySettings, setCompanySettings] = useState<CompanySettings | null>(null);
   const [loading, setLoading] = useState(true);
   const [showAddEntryModal, setShowAddEntryModal] = useState(false);
   const [showSetBalanceModal, setShowSetBalanceModal] = useState(false);
@@ -20,6 +22,7 @@ export default function CashPage() {
 
   useEffect(() => {
     loadData();
+    loadCompanySettings();
   }, []);
 
   const loadData = async () => {
@@ -34,6 +37,15 @@ export default function CashPage() {
       console.error('Failed to load cash data:', error);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const loadCompanySettings = async () => {
+    try {
+      const settings = await getCompanySettings();
+      setCompanySettings(settings);
+    } catch (error) {
+      console.error('Failed to load company settings:', error);
     }
   };
 
@@ -72,7 +84,7 @@ export default function CashPage() {
   };
 
   const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat('fr-FR', { style: 'currency', currency: 'USD' }).format(amount);
+    return formatCurrencyUtil(amount, companySettings?.currency || '$');
   };
 
   if (loading) {

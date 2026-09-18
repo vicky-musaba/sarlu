@@ -7,6 +7,7 @@ import { Output, CompanySettings } from '@/types';
 import { Button } from '@/components/ui/Button';
 import { Card } from '@/components/ui/Card';
 import jsPDF from 'jspdf';
+import { formatCurrency as formatCurrencyUtil } from '@/utils/currency';
 
 function PrintReceiptContent() {
   const router = useRouter();
@@ -119,7 +120,7 @@ function PrintReceiptContent() {
     // Amount
     doc.setFontSize(fontSize + 4);
     doc.setFont('helvetica', 'bold');
-    const formattedAmount = new Intl.NumberFormat('fr-FR', { style: 'currency', currency: 'USD' }).format(output.amount);
+    const formattedAmount = formatCurrencyUtil(output.amount, companySettings.currency);
     doc.text(formattedAmount, pageWidth / 2, y, { align: 'center' });
     y += lineHeight + 2;
 
@@ -183,7 +184,7 @@ function PrintReceiptContent() {
   };
 
   const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat('fr-FR', { style: 'currency', currency: 'USD' }).format(amount);
+    return formatCurrencyUtil(amount, companySettings?.currency || '$');
   };
 
   if (loading) {

@@ -1,12 +1,14 @@
 'use client';
 
 import React, { useEffect, useState } from 'react';
-import { getAllOutputs, getCashBalance } from '@/lib/firestore';
-import { DashboardStats } from '@/types';
+import { getAllOutputs, getCashBalance, getCompanySettings } from '@/lib/firestore';
+import { DashboardStats, CompanySettings } from '@/types';
 import { Card } from '@/components/ui/Card';
+import { formatCurrency as formatCurrencyUtil } from '@/utils/currency';
 
 export default function DashboardPage() {
   const [stats, setStats] = useState<DashboardStats | null>(null);
+  const [companySettings, setCompanySettings] = useState<CompanySettings | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -15,10 +17,15 @@ export default function DashboardPage() {
 
   const loadStats = async () => {
     try {
-      const [outputs, balance] = await Promise.all([
+      const [outputs, balance, settings] = await Promise.all([
         getAllOutputs(),
         getCashBalance(),
+        getCompanySettings(),
       ]);
+
+      if (settings) {
+        setCompanySettings(settings);
+      }
 
       const now = new Date();
       const today = now.toISOString().split('T')[0];
@@ -81,8 +88,8 @@ export default function DashboardPage() {
     }
   };
 
-  const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat('fr-FR', { style: 'currency', currency: 'USD' }).format(amount);
+  const formatCurrencyWithSettings = (amount: number) => {
+    return formatCurrency(amount, companySettings?.currency || '$');
   };
 
   if (loading) {
@@ -106,7 +113,7 @@ export default function DashboardPage() {
           <div className="flex items-center justify-between">
             <div>
               <p className="text-gray-500 text-sm">Aujourd'hui</p>
-              <p className="text-2xl font-bold text-gray-800">{formatCurrency(stats.today_total)}</p>
+              <p className="text-2xl font-bold text-gray-800">{formatCurrencyWithSettings(stats.today_total)}</p>
             </div>
             <div className="text-3xl">📅</div>
           </div>
@@ -116,7 +123,7 @@ export default function DashboardPage() {
           <div className="flex items-center justify-between">
             <div>
               <p className="text-gray-500 text-sm">Cette semaine</p>
-              <p className="text-2xl font-bold text-gray-800">{formatCurrency(stats.week_total)}</p>
+              <p className="text-2xl font-bold text-gray-800">{formatCurrencyWithSettings(stats.week_total)}</p>
             </div>
             <div className="text-3xl">📆</div>
           </div>
@@ -126,7 +133,7 @@ export default function DashboardPage() {
           <div className="flex items-center justify-between">
             <div>
               <p className="text-gray-500 text-sm">Ce mois</p>
-              <p className="text-2xl font-bold text-gray-800">{formatCurrency(stats.month_total)}</p>
+              <p className="text-2xl font-bold text-gray-800">{formatCurrencyWithSettings(stats.month_total)}</p>
             </div>
             <div className="text-3xl">📊</div>
           </div>
@@ -136,7 +143,7 @@ export default function DashboardPage() {
           <div className="flex items-center justify-between">
             <div>
               <p className="text-gray-500 text-sm">Cette année</p>
-              <p className="text-2xl font-bold text-gray-800">{formatCurrency(stats.year_total)}</p>
+              <p className="text-2xl font-bold text-gray-800">{formatCurrencyWithSettings(stats.year_total)}</p>
             </div>
             <div className="text-3xl">📈</div>
           </div>
@@ -146,7 +153,7 @@ export default function DashboardPage() {
           <div className="flex items-center justify-between">
             <div>
               <p className="text-gray-500 text-sm">Total général</p>
-              <p className="text-2xl font-bold text-gray-800">{formatCurrency(stats.general_total)}</p>
+              <p className="text-2xl font-bold text-gray-800">{formatCurrencyWithSettings(stats.general_total)}</p>
             </div>
             <div className="text-3xl">💰</div>
           </div>
@@ -157,7 +164,7 @@ export default function DashboardPage() {
             <div>
               <p className="text-gray-500 text-sm">Solde actuel</p>
               <p className={`text-2xl font-bold ${stats.current_balance >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-                {formatCurrency(stats.current_balance)}
+                {formatCurrencyWithSettings(stats.current_balance)}
               </p>
             </div>
             <div className="text-3xl">💵</div>
@@ -179,7 +186,7 @@ export default function DashboardPage() {
             <div>
               <p className="text-gray-500 text-sm">Moyenne par sortie</p>
               <p className="text-2xl font-bold text-gray-800">
-                {stats.output_count > 0 ? formatCurrency(stats.general_total / stats.output_count) : formatCurrency(0)}
+                {stats.output_count > 0 ? formatCurrencyWithSettings(stats.general_total / stats.output_count) : formatCurrencyWithSettings(0)}
               </p>
             </div>
             <div className="text-3xl">📊</div>
@@ -205,7 +212,7 @@ export default function DashboardPage() {
                   <tr key={index} className="hover:bg-gray-50">
                     <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{cat.name}</td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{cat.count}</td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{formatCurrency(cat.total)}</td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{formatCurrencyWithSettings(cat.total)}</td>
                   </tr>
                 ))
               ) : (

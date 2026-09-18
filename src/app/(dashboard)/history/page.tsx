@@ -2,19 +2,21 @@
 
 import React, { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { getAllOutputs, deleteOutput } from '@/lib/firestore';
-import { Output } from '@/types';
+import { getAllOutputs, deleteOutput, getCompanySettings } from '@/lib/firestore';
+import { Output, CompanySettings } from '@/types';
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 import { Select } from '@/components/ui/Select';
 import { Card } from '@/components/ui/Card';
+import { formatCurrency as formatCurrencyUtil } from '@/utils/currency';
 
 export default function HistoryPage() {
   const router = useRouter();
   const { isAdmin } = useAuth();
   const [outputs, setOutputs] = useState<Output[]>([]);
   const [filteredOutputs, setFilteredOutputs] = useState<Output[]>([]);
+  const [companySettings, setCompanySettings] = useState<CompanySettings | null>(null);
   const [loading, setLoading] = useState(true);
   const [filters, setFilters] = useState({
     search: '',
@@ -26,6 +28,7 @@ export default function HistoryPage() {
 
   useEffect(() => {
     loadOutputs();
+    loadCompanySettings();
   }, []);
 
   useEffect(() => {
@@ -40,6 +43,15 @@ export default function HistoryPage() {
       console.error('Failed to load outputs:', error);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const loadCompanySettings = async () => {
+    try {
+      const settings = await getCompanySettings();
+      setCompanySettings(settings);
+    } catch (error) {
+      console.error('Failed to load company settings:', error);
     }
   };
 
@@ -106,7 +118,7 @@ export default function HistoryPage() {
   };
 
   const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat('fr-FR', { style: 'currency', currency: 'USD' }).format(amount);
+    return formatCurrencyUtil(amount, companySettings?.currency || '$');
   };
 
   const paymentModeOptions = [

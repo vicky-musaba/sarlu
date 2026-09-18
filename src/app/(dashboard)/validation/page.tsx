@@ -1,16 +1,18 @@
 'use client';
 
 import React, { useEffect, useState } from 'react';
-import { getPendingOutputs, approveOutput, rejectOutput } from '@/lib/firestore';
-import { Output } from '@/types';
+import { getPendingOutputs, approveOutput, rejectOutput, getCompanySettings } from '@/lib/firestore';
+import { Output, CompanySettings } from '@/types';
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/Button';
 import { Card } from '@/components/ui/Card';
+import { formatCurrency as formatCurrencyUtil } from '@/utils/currency';
 
 export default function ValidationPage() {
   const { user, isSupervisor, isAuditor, isAdmin } = useAuth();
   const canApproveReject = isSupervisor || isAdmin;
   const [pendingOutputs, setPendingOutputs] = useState<Output[]>([]);
+  const [companySettings, setCompanySettings] = useState<CompanySettings | null>(null);
   const [loading, setLoading] = useState(true);
   const [selectedOutput, setSelectedOutput] = useState<Output | null>(null);
   const [rejectionReason, setRejectionReason] = useState('');
@@ -18,6 +20,7 @@ export default function ValidationPage() {
 
   useEffect(() => {
     loadPendingOutputs();
+    loadCompanySettings();
   }, []);
 
   const loadPendingOutputs = async () => {
@@ -28,6 +31,15 @@ export default function ValidationPage() {
       console.error('Failed to load pending outputs:', error);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const loadCompanySettings = async () => {
+    try {
+      const settings = await getCompanySettings();
+      setCompanySettings(settings);
+    } catch (error) {
+      console.error('Failed to load company settings:', error);
     }
   };
 
@@ -62,7 +74,7 @@ export default function ValidationPage() {
   };
 
   const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat('fr-FR', { style: 'currency', currency: 'USD' }).format(amount);
+    return formatCurrencyUtil(amount, companySettings?.currency || '$');
   };
 
   if (!isSupervisor && !isAuditor && !isAdmin) {

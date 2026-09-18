@@ -1,8 +1,8 @@
 'use client';
 
 import React, { useEffect, useState } from 'react';
-import { getOutputsByDateRange } from '@/lib/firestore';
-import { Output, ReportData } from '@/types';
+import { getOutputsByDateRange, getCompanySettings } from '@/lib/firestore';
+import { Output, ReportData, CompanySettings } from '@/types';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 import { Card } from '@/components/ui/Card';
@@ -10,9 +10,11 @@ import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import ExcelJS from 'exceljs';
 import { saveAs } from 'file-saver';
+import { formatCurrency as formatCurrencyUtil } from '@/utils/currency';
 
 export default function ReportsPage() {
   const [reportData, setReportData] = useState<ReportData | null>(null);
+  const [companySettings, setCompanySettings] = useState<CompanySettings | null>(null);
   const [loading, setLoading] = useState(false);
   const [reportType, setReportType] = useState<'daily' | 'weekly' | 'monthly' | 'custom'>('daily');
   const [startDate, setStartDate] = useState('');
@@ -22,6 +24,7 @@ export default function ReportsPage() {
     if (reportType !== 'custom') {
       setDatesForType(reportType);
     }
+    loadCompanySettings();
   }, [reportType]);
 
   const setDatesForType = (type: string) => {
@@ -49,6 +52,15 @@ export default function ReportsPage() {
 
     setStartDate(start.toISOString().split('T')[0]);
     setEndDate(end.toISOString().split('T')[0]);
+  };
+
+  const loadCompanySettings = async () => {
+    try {
+      const settings = await getCompanySettings();
+      setCompanySettings(settings);
+    } catch (error) {
+      console.error('Failed to load company settings:', error);
+    }
   };
 
   const generateReport = async () => {
@@ -92,7 +104,7 @@ export default function ReportsPage() {
 
     // Summary
     doc.text(`Total des sorties: ${reportData.count}`, 14, 40);
-    doc.text(`Montant total: ${new Intl.NumberFormat('fr-FR', { style: 'currency', currency: 'USD' }).format(reportData.total)}`, 14, 50);
+    doc.text(`Montant total: ${formatCurrencyUtil(reportData.total, companySettings?.currency || '$')}`, 14, 50);
 
     // Table
     const tableData = reportData.outputs.map(output => [
@@ -100,7 +112,7 @@ export default function ReportsPage() {
       output.date,
       output.category_name,
       output.description,
-      new Intl.NumberFormat('fr-FR', { style: 'currency', currency: 'USD' }).format(output.amount),
+      formatCurrencyUtil(output.amount, companySettings?.currency || '$'),
       output.responsible,
       output.payment_mode,
       output.created_by_username,
@@ -149,7 +161,7 @@ export default function ReportsPage() {
   };
 
   const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat('fr-FR', { style: 'currency', currency: 'USD' }).format(amount);
+    return formatCurrencyUtil(amount, companySettings?.currency || '$');
   };
 
   return (
