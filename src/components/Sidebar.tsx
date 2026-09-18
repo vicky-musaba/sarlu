@@ -2,7 +2,7 @@
 
 import React from 'react';
 import Link from 'next/link';
-import { usePathname } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
 import { useAuth } from '@/contexts/AuthContext';
 
 const menuItems = [
@@ -20,12 +20,37 @@ const menuItems = [
 
 export const Sidebar: React.FC = () => {
   const pathname = usePathname();
-  const { user, logout, isAdmin, isCashier } = useAuth();
+  const router = useRouter();
+  const { user, logout, isAdmin, isCashier, loading } = useAuth();
   const userRole = user?.role || '';
 
   const filteredMenuItems = menuItems.filter(item => item.roles.includes(userRole));
 
   const isActive = (path: string) => pathname === path;
+
+  const handleLogout = async () => {
+    try {
+      await logout();
+      router.push('/login');
+    } catch (error) {
+      console.error('Logout error:', error);
+    }
+  };
+
+  if (loading) {
+    return (
+      <div className="w-64 bg-gray-900 text-white flex flex-col h-screen">
+        <div className="p-6 border-b border-gray-700">
+          <img src="/logo.png" alt="LE SECOURS SARLU" className="h-12 w-auto mb-2" />
+          <h1 className="text-xl font-bold">LE SECOURS SARLU</h1>
+          <p className="text-sm text-gray-400 mt-1">Gestion de Caisse</p>
+        </div>
+        <div className="flex-1 flex items-center justify-center">
+          <p>Chargement...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="w-64 bg-gray-900 text-white flex flex-col h-screen">
@@ -55,13 +80,13 @@ export const Sidebar: React.FC = () => {
       <div className="p-4 border-t border-gray-700">
         <div className="mb-4">
           <p className="text-sm text-gray-400">Connecté en tant que :</p>
-          <p className="font-medium">{user?.username}</p>
+          <p className="font-medium">{user?.username || 'Chargement...'}</p>
           <p className="text-xs text-gray-500 capitalize">
-            {user?.role === 'admin' ? 'Administrateur' : 'Caissière'}
+            {user?.role === 'admin' ? 'Administrateur' : user?.role === 'cashier' ? 'Caissière' : 'Inconnu'}
           </p>
         </div>
         <button
-          onClick={logout}
+          onClick={handleLogout}
           className="w-full flex items-center justify-center space-x-2 px-4 py-2 bg-red-600 hover:bg-red-700 rounded-lg transition-colors"
         >
           <span>🚪</span>
