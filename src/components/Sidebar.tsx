@@ -7,7 +7,7 @@ import { useAuth } from '@/contexts/AuthContext';
 
 const menuItems = [
   { path: '/dashboard', icon: '🏠', label: 'Tableau de bord', roles: ['admin', 'supervisor', 'cashier'] },
-  { path: '/new-output', icon: '💰', label: 'Nouvelle sortie', roles: ['admin', 'supervisor', 'cashier'] },
+  { path: '/new-output', icon: '💰', label: 'Nouvelle sortie', roles: ['admin', 'cashier'] },
   { path: '/validation', icon: '✅', label: 'Validation', roles: ['admin', 'supervisor'] },
   { path: '/history', icon: '📋', label: 'Historique', roles: ['admin', 'supervisor', 'cashier'] },
   { path: '/reports', icon: '📊', label: 'Rapports', roles: ['admin', 'supervisor', 'cashier'] },
