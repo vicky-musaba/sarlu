@@ -130,7 +130,9 @@ export default function CashPage() {
 
       {/* Actions */}
       <div className="flex space-x-4">
-        <Button onClick={() => setShowAddEntryModal(true)}>+ Ajouter une entrée</Button>
+        {isAdmin && (
+          <Button onClick={() => setShowAddEntryModal(true)}>+ Ajouter une entrée</Button>
+        )}
         {isAdmin && (
           <Button variant="secondary" onClick={() => setShowSetBalanceModal(true)}>
             Définir solde initial
