@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useEffect, useState } from 'react';
-import { getAllUsers, createUser, updateUser, deleteUser, getCompanySettings, updateCompanySettings } from '@/lib/firestore';
+import { getAllUsers, createUser, updateUser, deleteUser, getCompanySettings, updateCompanySettings, clearAllOperationalData } from '@/lib/firestore';
 import { User, CompanySettings } from '@/types';
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/Button';
@@ -53,6 +53,20 @@ export default function SettingsPage() {
       console.error('Failed to load settings:', error);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleClearOperationalData = async () => {
+    if (confirm('Êtes-vous sûr de vouloir supprimer toutes les données d\'exploitation ? Cette action est irréversible et va économiser l\'espace de stockage Firebase.')) {
+      try {
+        await clearAllOperationalData();
+        setSuccess('Toutes les données d\'exploitation ont été supprimées avec succès');
+        // Reload to reflect changes
+        setTimeout(() => window.location.reload(), 2000);
+      } catch (error) {
+        console.error('Failed to clear operational data:', error);
+        setError('Erreur lors de la suppression des données');
+      }
     }
   };
 
@@ -316,6 +330,28 @@ export default function SettingsPage() {
           </Card>
         </div>
       )}
+
+      {/* Clear Operational Data */}
+      <Card>
+        <h2 className="text-xl font-bold text-gray-800 mb-4">Gestion des données d'exploitation</h2>
+        <div className="bg-red-50 border border-red-200 rounded-lg p-4 mb-4">
+          <p className="text-red-800">
+            <strong>Attention :</strong> Cette action va supprimer toutes les données d'exploitation pour économiser l'espace de stockage Firebase.
+          </p>
+          <ul className="list-disc list-inside mt-2 text-red-700">
+            <li>Toutes les sorties d'argent</li>
+            <li>Toutes les entrées de caisse</li>
+            <li>Tous les journaux d'audit</li>
+            <li>Le solde de caisse sera réinitialisé à 0</li>
+          </ul>
+          <p className="mt-2 text-red-600">
+            Les données conservées : utilisateurs, catégories, paramètres entreprise
+          </p>
+        </div>
+        <Button onClick={handleClearOperationalData} variant="danger">
+          🗑️ Supprimer toutes les données d'exploitation
+        </Button>
+      </Card>
     </div>
   );
 }

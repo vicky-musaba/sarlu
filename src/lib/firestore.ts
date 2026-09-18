@@ -850,3 +850,33 @@ export const updateCompanySettings = async (
     await setDoc(docRef, dataToUpdate);
   }
 };
+
+// Clear all operational data to save storage space
+export const clearAllOperationalData = async (): Promise<void> => {
+  // Delete all outputs
+  const outputsSnapshot = await getDocs(collection(db, COLLECTIONS.OUTPUTS));
+  for (const doc of outputsSnapshot.docs) {
+    await deleteDoc(doc.ref);
+  }
+
+  // Delete all cash entries
+  const entriesSnapshot = await getDocs(collection(db, COLLECTIONS.CASH_ENTRIES));
+  for (const doc of entriesSnapshot.docs) {
+    await deleteDoc(doc.ref);
+  }
+
+  // Delete all audit logs
+  const auditSnapshot = await getDocs(collection(db, COLLECTIONS.AUDIT_LOGS));
+  for (const doc of auditSnapshot.docs) {
+    await deleteDoc(doc.ref);
+  }
+
+  // Reset cash balance
+  const balanceRef = doc(db, COLLECTIONS.CASH_BALANCE, 'current');
+  await setDoc(balanceRef, {
+    initial_balance: 0,
+    current_balance: 0,
+    total_entries: 0,
+    total_outputs: 0,
+  });
+};
