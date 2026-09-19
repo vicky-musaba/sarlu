@@ -9,6 +9,7 @@ import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 import { Select } from '@/components/ui/Select';
 import { Card } from '@/components/ui/Card';
+import { formatCurrency as formatCurrencyUtil } from '@/utils/currency';
 
 function EditOutputContent() {
   const router = useRouter();
@@ -114,6 +115,13 @@ function EditOutputContent() {
     }
   };
 
+  const formatPreviewAmount = () => {
+    if (!formData.amount) return '';
+    const amount = parseFloat(formData.amount);
+    if (isNaN(amount)) return '';
+    return formatCurrencyUtil(amount, formData.currency);
+  };
+
   if (!output) {
     return (
       <div className="text-center">
@@ -170,6 +178,15 @@ function EditOutputContent() {
             ]}
             required
           />
+
+          {/* Aperçu du montant */}
+          {formData.amount && (
+            <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
+              <p className="text-sm text-blue-800">
+                <strong>Aperçu du montant :</strong> {formatPreviewAmount()}
+              </p>
+            </div>
+          )}
 
           <Input
             label="Description / Motif"

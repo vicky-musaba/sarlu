@@ -9,6 +9,7 @@ import { Input } from '@/components/ui/Input';
 import { Select } from '@/components/ui/Select';
 import { Button } from '@/components/ui/Button';
 import { Card } from '@/components/ui/Card';
+import { formatCurrency as formatCurrencyUtil } from '@/utils/currency';
 
 export default function NewOutputPage() {
   const router = useRouter();
@@ -83,6 +84,13 @@ export default function NewOutputPage() {
     }
   };
 
+  const formatPreviewAmount = () => {
+    if (!formData.amount) return '';
+    const amount = parseFloat(formData.amount);
+    if (isNaN(amount)) return '';
+    return formatCurrencyUtil(amount, formData.currency);
+  };
+
   return (
     <div className="space-y-6">
       <h1 className="text-3xl font-bold text-gray-800">Nouvelle Sortie</h1>
@@ -119,6 +127,15 @@ export default function NewOutputPage() {
               ]}
               required
             />
+
+            {/* Aperçu du montant */}
+            {formData.amount && (
+              <div className="md:col-span-2 bg-blue-50 border border-blue-200 rounded-lg p-3">
+                <p className="text-sm text-blue-800">
+                  <strong>Aperçu du montant :</strong> {formatPreviewAmount()}
+                </p>
+              </div>
+            )}
 
             <Input
               label="Description"
