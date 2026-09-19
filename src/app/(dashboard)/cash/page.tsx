@@ -1,11 +1,12 @@
 'use client';
 
 import React, { useEffect, useState } from 'react';
-import { getCashBalance, getAllCashEntries, createCashEntry, setInitialBalance, getCompanySettings } from '@/lib/firestore';
-import { CashBalance, CashEntry, CompanySettings } from '@/types';
+import { getCashBalance, getAllCashEntries, createCashEntry, setInitialBalance, getCompanySettings, getAllOutputs } from '@/lib/firestore';
+import { CashBalance, CashEntry, CompanySettings, Output } from '@/types';
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
+import { Select } from '@/components/ui/Select';
 import { Card } from '@/components/ui/Card';
 import { formatCurrency as formatCurrencyUtil } from '@/utils/currency';
 
@@ -13,11 +14,12 @@ export default function CashPage() {
   const { isAdmin } = useAuth();
   const [balance, setBalance] = useState<CashBalance | null>(null);
   const [entries, setEntries] = useState<CashEntry[]>([]);
+  const [outputs, setOutputs] = useState<Output[]>([]);
   const [companySettings, setCompanySettings] = useState<CompanySettings | null>(null);
   const [loading, setLoading] = useState(true);
   const [showAddEntryModal, setShowAddEntryModal] = useState(false);
   const [showSetBalanceModal, setShowSetBalanceModal] = useState(false);
-  const [entryFormData, setEntryFormData] = useState({ amount: '', description: '' });
+  const [entryFormData, setEntryFormData] = useState({ amount: '', description: '', currency: '$' });
   const [balanceFormData, setBalanceFormData] = useState({ amount: '' });
 
   useEffect(() => {
@@ -27,12 +29,14 @@ export default function CashPage() {
 
   const loadData = async () => {
     try {
-      const [balanceData, entriesData] = await Promise.all([
+      const [balanceData, entriesData, outputsData] = await Promise.all([
         getCashBalance(),
         getAllCashEntries(),
+        getAllOutputs(),
       ]);
       setBalance(balanceData);
       setEntries(entriesData);
+      setOutputs(outputsData);
     } catch (error) {
       console.error('Failed to load cash data:', error);
     } finally {
@@ -55,13 +59,14 @@ export default function CashPage() {
       await createCashEntry({
         date: new Date().toISOString().split('T')[0],
         amount: parseFloat(entryFormData.amount),
+        currency: entryFormData.currency,
         description: entryFormData.description,
         created_by: 'current_user', // TODO: Get from auth
         created_at: new Date().toISOString(),
       });
       await loadData();
       setShowAddEntryModal(false);
-      setEntryFormData({ amount: '', description: '' });
+      setEntryFormData({ amount: '', description: '', currency: '$' });
     } catch (error) {
       console.error('Failed to add entry:', error);
       alert('Erreur lors de l\'ajout');
@@ -87,6 +92,61 @@ export default function CashPage() {
     return formatCurrencyUtil(amount, currency || companySettings?.currency || '$');
   };
 
+  const formatPreviewAmount = () => {
+    if (!entryFormData.amount) return '';
+    const amount = parseFloat(entryFormData.amount);
+    if (isNaN(amount)) return '';
+    return formatCurrencyUtil(amount, entryFormData.currency || '$');
+  };
+
+  const calculateBalancesByCurrency = () => {
+    const balances: Record<string, {
+      initial_balance: number;
+      current_balance: number;
+      total_entries: number;
+      total_outputs: number;
+    }> = {};
+
+    // Initialize with default currencies
+    balances['$'] = { initial_balance: 0, current_balance: 0, total_entries: 0, total_outputs: 0 };
+    balances['CDF'] = { initial_balance: 0, current_balance: 0, total_entries: 0, total_outputs: 0 };
+
+    // Calculate from entries
+    entries.forEach(entry => {
+      const currency = entry.currency || '$';
+      if (!balances[currency]) {
+        balances[currency] = { initial_balance: 0, current_balance: 0, total_entries: 0, total_outputs: 0 };
+      }
+      balances[currency].total_entries += entry.amount;
+      balances[currency].current_balance += entry.amount;
+    });
+
+    // Calculate from outputs (only approved ones)
+    const approvedOutputs = outputs.filter(o => o.status === 'approved');
+    approvedOutputs.forEach(output => {
+      const currency = output.currency || '$';
+      if (!balances[currency]) {
+        balances[currency] = { initial_balance: 0, current_balance: 0, total_entries: 0, total_outputs: 0 };
+      }
+      balances[currency].total_outputs += output.amount;
+      balances[currency].current_balance -= output.amount;
+    });
+
+    // Set initial balance from total data
+    if (balance) {
+      Object.keys(balances).forEach(currency => {
+        const totalInitial = balance.initial_balance;
+        const totalCurrent = balance.current_balance;
+        const ratio = balances[currency].current_balance / (totalCurrent || 1);
+        balances[currency].initial_balance = totalInitial * ratio;
+      });
+    }
+
+    return balances;
+  };
+
+  const balancesByCurrency = calculateBalancesByCurrency();
+
   if (loading) {
     return <div className="flex items-center justify-center h-full">Chargement...</div>;
   }
@@ -95,49 +155,59 @@ export default function CashPage() {
     <div className="space-y-6">
       <h1 className="text-3xl font-bold text-gray-800">Caisse</h1>
 
-      {/* Balance Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        <Card>
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-gray-500 text-sm">Solde initial</p>
-              <p className="text-2xl font-bold text-gray-800">{formatCurrency(balance?.initial_balance || 0)}</p>
-            </div>
-            <div className="text-3xl">💰</div>
-          </div>
-        </Card>
+      {/* Balance Cards by Currency */}
+      <div className="space-y-6">
+        <h2 className="text-xl font-bold text-gray-800">Soldes par devise</h2>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          {Object.entries(balancesByCurrency).map(([currency, currencyBalance]) => (
+            <div key={currency} className="space-y-4">
+              <h3 className="text-lg font-semibold text-gray-700">{currency}</h3>
+              <div className="grid grid-cols-2 gap-4">
+                <Card>
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-gray-500 text-sm">Solde initial</p>
+                      <p className="text-2xl font-bold text-gray-800">{formatCurrency(currencyBalance.initial_balance, currency)}</p>
+                    </div>
+                    <div className="text-3xl">💰</div>
+                  </div>
+                </Card>
 
-        <Card>
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-gray-500 text-sm">Solde actuel</p>
-              <p className={`text-2xl font-bold ${balance?.current_balance && balance.current_balance >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-                {formatCurrency(balance?.current_balance || 0)}
-              </p>
-            </div>
-            <div className="text-3xl">💵</div>
-          </div>
-        </Card>
+                <Card>
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-gray-500 text-sm">Solde actuel</p>
+                      <p className={`text-2xl font-bold ${currencyBalance.current_balance >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                        {formatCurrency(currencyBalance.current_balance, currency)}
+                      </p>
+                    </div>
+                    <div className="text-3xl">💵</div>
+                  </div>
+                </Card>
 
-        <Card>
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-gray-500 text-sm">Total entrées</p>
-              <p className="text-2xl font-bold text-green-600">{formatCurrency(balance?.total_entries || 0)}</p>
-            </div>
-            <div className="text-3xl">📈</div>
-          </div>
-        </Card>
+                <Card>
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-gray-500 text-sm">Total entrées</p>
+                      <p className="text-2xl font-bold text-green-600">{formatCurrency(currencyBalance.total_entries, currency)}</p>
+                    </div>
+                    <div className="text-3xl">📈</div>
+                  </div>
+                </Card>
 
-        <Card>
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-gray-500 text-sm">Total sorties</p>
-              <p className="text-2xl font-bold text-red-600">{formatCurrency(balance?.total_outputs || 0)}</p>
+                <Card>
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-gray-500 text-sm">Total sorties</p>
+                      <p className="text-2xl font-bold text-red-600">{formatCurrency(currencyBalance.total_outputs, currency)}</p>
+                    </div>
+                    <div className="text-3xl">📉</div>
+                  </div>
+                </Card>
+              </div>
             </div>
-            <div className="text-3xl">📉</div>
-          </div>
-        </Card>
+          ))}
+        </div>
       </div>
 
       {/* Actions */}
@@ -162,6 +232,7 @@ export default function CashPage() {
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Date</th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Description</th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Montant</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Devise</th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Créé par</th>
               </tr>
             </thead>
@@ -171,13 +242,14 @@ export default function CashPage() {
                   <tr key={entry.id} className="hover:bg-gray-50">
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{entry.date}</td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{entry.description}</td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm font-bold text-green-600">{formatCurrency(entry.amount)}</td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm font-bold text-green-600">{formatCurrency(entry.amount, entry.currency || '$')}</td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{entry.currency || '$'}</td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{entry.created_by}</td>
                   </tr>
                 ))
               ) : (
                 <tr>
-                  <td colSpan={4} className="px-6 py-4 text-center text-sm text-gray-500">
+                  <td colSpan={5} className="px-6 py-4 text-center text-sm text-gray-500">
                     Aucune entrée
                   </td>
                 </tr>
@@ -203,6 +275,26 @@ export default function CashPage() {
                 min="0"
                 step="0.01"
               />
+              <Select
+                label="Devise"
+                value={entryFormData.currency}
+                onChange={(e) => setEntryFormData({ ...entryFormData, currency: e.target.value })}
+                options={[
+                  { value: '$', label: 'Dollar ($)' },
+                  { value: 'CDF', label: 'Franc Congolais (CDF)' },
+                ]}
+                required
+              />
+
+              {/* Aperçu du montant */}
+              {entryFormData.amount && (
+                <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
+                  <p className="text-sm text-blue-800">
+                    <strong>Aperçu du montant :</strong> {formatPreviewAmount()}
+                  </p>
+                </div>
+              )}
+
               <Input
                 label="Description"
                 value={entryFormData.description}
@@ -217,7 +309,7 @@ export default function CashPage() {
                   variant="secondary"
                   onClick={() => {
                     setShowAddEntryModal(false);
-                    setEntryFormData({ amount: '', description: '' });
+                    setEntryFormData({ amount: '', description: '', currency: '$' });
                   }}
                 >
                   Annuler

@@ -655,6 +655,10 @@ export const getCashBalance = async (): Promise<
     current_balance: Number(data.current_balance ?? 0),
     total_entries: Number(data.total_entries ?? 0),
     total_outputs: Number(data.total_outputs ?? 0),
+    balances_by_currency: data.balances_by_currency || {
+      '$': { initial_balance: 0, current_balance: 0, total_entries: 0, total_outputs: 0 },
+      'CDF': { initial_balance: 0, current_balance: 0, total_entries: 0, total_outputs: 0 },
+    },
   };
 };
 
@@ -776,6 +780,7 @@ export const getAllCashEntries = async (): Promise<
       id: document.id,
       date: String(data.date ?? ''),
       amount: Number(data.amount ?? 0),
+      currency: String(data.currency ?? '$'),
       description: String(data.description ?? ''),
       created_by: String(data.created_by ?? ''),
       created_at: timestampToString(data.created_at),

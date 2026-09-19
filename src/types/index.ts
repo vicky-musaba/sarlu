@@ -40,12 +40,21 @@ export interface CashBalance {
   current_balance: number;
   total_entries: number;
   total_outputs: number;
+  balances_by_currency: {
+    [currency: string]: {
+      initial_balance: number;
+      current_balance: number;
+      total_entries: number;
+      total_outputs: number;
+    };
+  };
 }
 
 export interface CashEntry {
   id: string;
   date: string;
   amount: number;
+  currency: string;
   description: string;
   created_by: string;
   created_at: string;
