@@ -99,6 +99,21 @@ export default function DashboardPage() {
         statsByCurrency[currency].count += 1;
       });
 
+      // Initialize with default currencies (like cash page)
+      const defaultCurrencies = ['$' , 'CDF'];
+      defaultCurrencies.forEach(currency => {
+        if (!statsByCurrency[currency]) {
+          statsByCurrency[currency] = {
+            today_total: 0,
+            week_total: 0,
+            month_total: 0,
+            year_total: 0,
+            general_total: 0,
+            count: 0,
+          };
+        }
+      });
+
       setStatsByCurrency(statsByCurrency);
 
       // Group outputs by currency for display
@@ -111,15 +126,14 @@ export default function DashboardPage() {
         return acc;
       }, {} as Record<string, Output[]>);
 
-      setOutputsByCurrency(outputsByCurrencyData);
-      const outputsByCurrency = outputs.reduce((acc, output) => {
-        const currency = output.currency || '$';
-        if (!acc[currency]) {
-          acc[currency] = [];
+      // Initialize with default currencies (like cash page)
+      defaultCurrencies.forEach(currency => {
+        if (!outputsByCurrencyData[currency]) {
+          outputsByCurrencyData[currency] = [];
         }
-        acc[currency].push(output);
-        return acc;
-      }, {} as Record<string, Output[]>);
+      });
+
+      setOutputsByCurrency(outputsByCurrencyData);
 
       // Calculate category totals
       const categoryMap = new Map<string, { count: number; total: number }>();
@@ -173,91 +187,77 @@ export default function DashboardPage() {
         <h1 className="text-3xl font-bold text-gray-800">Tableau de bord</h1>
       </div>
 
-      {/* Stats Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        <Card>
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-gray-500 text-sm">Aujourd'hui</p>
-              <p className="text-2xl font-bold text-gray-800">{formatCurrencyWithSettings(stats.today_total)}</p>
-            </div>
-            <div className="text-3xl">📅</div>
-          </div>
-        </Card>
+      {/* Stats Cards by Currency */}
+      <div className="space-y-6">
+        <h2 className="text-xl font-bold text-gray-800">Statistiques par devise</h2>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          {Object.entries(statsByCurrency).map(([currency, currencyStats]) => (
+            <div key={currency} className="space-y-4">
+              <h3 className="text-lg font-semibold text-gray-700">{currency}</h3>
+              <div className="grid grid-cols-2 gap-4">
+                <Card>
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-gray-500 text-sm">Aujourd'hui</p>
+                      <p className="text-2xl font-bold text-gray-800">{formatCurrencyWithSettings(currencyStats.today_total, currency)}</p>
+                    </div>
+                    <div className="text-3xl">�</div>
+                  </div>
+                </Card>
 
-        <Card>
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-gray-500 text-sm">Cette semaine</p>
-              <p className="text-2xl font-bold text-gray-800">{formatCurrencyWithSettings(stats.week_total)}</p>
-            </div>
-            <div className="text-3xl">📆</div>
-          </div>
-        </Card>
+                <Card>
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-gray-500 text-sm">Cette semaine</p>
+                      <p className="text-2xl font-bold text-gray-800">{formatCurrencyWithSettings(currencyStats.week_total, currency)}</p>
+                    </div>
+                    <div className="text-3xl">�</div>
+                  </div>
+                </Card>
 
-        <Card>
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-gray-500 text-sm">Ce mois</p>
-              <p className="text-2xl font-bold text-gray-800">{formatCurrencyWithSettings(stats.month_total)}</p>
-            </div>
-            <div className="text-3xl">📊</div>
-          </div>
-        </Card>
+                <Card>
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-gray-500 text-sm">Ce mois</p>
+                      <p className="text-2xl font-bold text-gray-800">{formatCurrencyWithSettings(currencyStats.month_total, currency)}</p>
+                    </div>
+                    <div className="text-3xl">�</div>
+                  </div>
+                </Card>
 
-        <Card>
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-gray-500 text-sm">Cette année</p>
-              <p className="text-2xl font-bold text-gray-800">{formatCurrencyWithSettings(stats.year_total)}</p>
-            </div>
-            <div className="text-3xl">📈</div>
-          </div>
-        </Card>
+                <Card>
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-gray-500 text-sm">Cette année</p>
+                      <p className="text-2xl font-bold text-gray-800">{formatCurrencyWithSettings(currencyStats.year_total, currency)}</p>
+                    </div>
+                    <div className="text-3xl">�</div>
+                  </div>
+                </Card>
 
-        <Card>
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-gray-500 text-sm">Total général</p>
-              <p className="text-2xl font-bold text-gray-800">{formatCurrencyWithSettings(stats.general_total)}</p>
-            </div>
-            <div className="text-3xl">💰</div>
-          </div>
-        </Card>
+                <Card>
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-gray-500 text-sm">Total général</p>
+                      <p className="text-2xl font-bold text-gray-800">{formatCurrencyWithSettings(currencyStats.general_total, currency)}</p>
+                    </div>
+                    <div className="text-3xl">�</div>
+                  </div>
+                </Card>
 
-        <Card>
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-gray-500 text-sm">Solde actuel</p>
-              <p className={`text-2xl font-bold ${stats.current_balance >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-                {formatCurrencyWithSettings(stats.current_balance)}
-              </p>
+                <Card>
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-gray-500 text-sm">Nombre de sorties</p>
+                      <p className="text-2xl font-bold text-gray-800">{currencyStats.count}</p>
+                    </div>
+                    <div className="text-3xl">📋</div>
+                  </div>
+                </Card>
+              </div>
             </div>
-            <div className="text-3xl">💵</div>
-          </div>
-        </Card>
-
-        <Card>
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-gray-500 text-sm">Nombre de sorties</p>
-              <p className="text-2xl font-bold text-gray-800">{stats.output_count}</p>
-            </div>
-            <div className="text-3xl">📋</div>
-          </div>
-        </Card>
-
-        <Card>
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-gray-500 text-sm">Moyenne par sortie</p>
-              <p className="text-2xl font-bold text-gray-800">
-                {stats.output_count > 0 ? formatCurrencyWithSettings(stats.general_total / stats.output_count) : formatCurrencyWithSettings(0)}
-              </p>
-            </div>
-            <div className="text-3xl">📊</div>
-          </div>
-        </Card>
+          ))}
+        </div>
       </div>
 
       {/* Stats by Currency */}
