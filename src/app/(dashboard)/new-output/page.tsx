@@ -121,6 +121,7 @@ export default function NewOutputPage() {
               label="Devise"
               value={formData.currency}
               onChange={(e) => setFormData({ ...formData, currency: e.target.value })}
+              placeholder="Choisi la devise"
               options={[
                 { value: '$', label: 'Dollar ($)' },
                 { value: 'CDF', label: 'Franc Congolais (CDF)' },
