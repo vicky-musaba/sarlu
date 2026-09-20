@@ -27,6 +27,7 @@ export default function NewOutputPage() {
     reference: '',
     observation: '',
   });
+  const [currencyLoaded, setCurrencyLoaded] = useState(false);
 
   React.useEffect(() => {
     loadCategories();
@@ -46,8 +47,9 @@ export default function NewOutputPage() {
     try {
       const settings = await getCompanySettings();
       setCompanySettings(settings);
-      if (settings) {
+      if (settings && !currencyLoaded) {
         setFormData(prev => ({ ...prev, currency: settings.currency }));
+        setCurrencyLoaded(true);
       }
     } catch (error) {
       console.error('Failed to load company settings:', error);
@@ -120,7 +122,10 @@ export default function NewOutputPage() {
             <Select
               label="Devise"
               value={formData.currency}
-              onChange={(e) => setFormData({ ...formData, currency: e.target.value })}
+              onChange={(e) => {
+                setFormData({ ...formData, currency: e.target.value });
+                setCurrencyLoaded(true);
+              }}
               placeholder="Choisi la devise"
               options={[
                 { value: '$', label: 'Dollar ($)' },
