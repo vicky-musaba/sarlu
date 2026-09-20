@@ -107,10 +107,6 @@ export default function CashPage() {
       total_outputs: number;
     }> = {};
 
-    // Initialize with default currencies
-    balances['$'] = { initial_balance: 0, current_balance: 0, total_entries: 0, total_outputs: 0 };
-    balances['CDF'] = { initial_balance: 0, current_balance: 0, total_entries: 0, total_outputs: 0 };
-
     // Calculate from entries
     entries.forEach(entry => {
       const currency = entry.currency || '$';
@@ -159,7 +155,9 @@ export default function CashPage() {
       <div className="space-y-6">
         <h2 className="text-xl font-bold text-gray-800">Soldes par devise</h2>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          {Object.entries(balancesByCurrency).map(([currency, currencyBalance]) => (
+          {Object.entries(balancesByCurrency)
+            .filter(([_, currencyBalance]) => currencyBalance.total_entries > 0 || currencyBalance.total_outputs > 0)
+            .map(([currency, currencyBalance]) => (
             <div key={currency} className="space-y-4">
               <h3 className="text-lg font-semibold text-gray-700">{currency}</h3>
               <div className="grid grid-cols-2 gap-4">
