@@ -201,7 +201,7 @@ export default function DashboardPage() {
                       <p className="text-gray-500 text-sm">Aujourd'hui</p>
                       <p className="text-2xl font-bold text-gray-800">{formatCurrencyWithSettings(currencyStats.today_total, currency)}</p>
                     </div>
-                    <div className="text-3xl">�</div>
+                    <div className="text-3xl">📅</div>
                   </div>
                 </Card>
 
@@ -211,7 +211,7 @@ export default function DashboardPage() {
                       <p className="text-gray-500 text-sm">Cette semaine</p>
                       <p className="text-2xl font-bold text-gray-800">{formatCurrencyWithSettings(currencyStats.week_total, currency)}</p>
                     </div>
-                    <div className="text-3xl">�</div>
+                    <div className="text-3xl">📆</div>
                   </div>
                 </Card>
 
@@ -221,7 +221,7 @@ export default function DashboardPage() {
                       <p className="text-gray-500 text-sm">Ce mois</p>
                       <p className="text-2xl font-bold text-gray-800">{formatCurrencyWithSettings(currencyStats.month_total, currency)}</p>
                     </div>
-                    <div className="text-3xl">�</div>
+                    <div className="text-3xl">📊</div>
                   </div>
                 </Card>
 
@@ -231,7 +231,7 @@ export default function DashboardPage() {
                       <p className="text-gray-500 text-sm">Cette année</p>
                       <p className="text-2xl font-bold text-gray-800">{formatCurrencyWithSettings(currencyStats.year_total, currency)}</p>
                     </div>
-                    <div className="text-3xl">�</div>
+                    <div className="text-3xl">📈</div>
                   </div>
                 </Card>
 
@@ -241,7 +241,7 @@ export default function DashboardPage() {
                       <p className="text-gray-500 text-sm">Total général</p>
                       <p className="text-2xl font-bold text-gray-800">{formatCurrencyWithSettings(currencyStats.general_total, currency)}</p>
                     </div>
-                    <div className="text-3xl">�</div>
+                    <div className="text-3xl">💰</div>
                   </div>
                 </Card>
 
