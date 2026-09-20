@@ -130,7 +130,23 @@ export default function HistoryPage() {
     { value: 'autre', label: 'Autre' },
   ];
 
-  const totalAmount = filteredOutputs.reduce((sum, o) => sum + o.amount, 0);
+  // Calculate totals by currency
+  const totalsByCurrency = filteredOutputs.reduce((acc, output) => {
+    const currency = output.currency || '$';
+    if (!acc[currency]) {
+      acc[currency] = 0;
+    }
+    acc[currency] += output.amount;
+    return acc;
+  }, {} as Record<string, number>);
+
+  // Initialize with default currencies
+  const defaultCurrencies = ['$', 'CDF'];
+  defaultCurrencies.forEach(currency => {
+    if (!totalsByCurrency[currency]) {
+      totalsByCurrency[currency] = 0;
+    }
+  });
 
   if (loading) {
     return <div className="flex items-center justify-center h-full">Chargement...</div>;
@@ -184,7 +200,13 @@ export default function HistoryPage() {
         <div className="flex justify-between items-center">
           <div>
             <p className="text-gray-600">Résultats : {filteredOutputs.length} sortie(s)</p>
-            <p className="text-2xl font-bold text-gray-800">Total : {formatCurrency(totalAmount)}</p>
+            <div className="space-y-1">
+              {Object.entries(totalsByCurrency).map(([currency, total]) => (
+                <p key={currency} className="text-2xl font-bold text-gray-800">
+                  Total : {formatCurrency(total, currency)}
+                </p>
+              ))}
+            </div>
           </div>
         </div>
       </Card>
