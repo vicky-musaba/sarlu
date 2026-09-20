@@ -140,14 +140,6 @@ export default function HistoryPage() {
     return acc;
   }, {} as Record<string, number>);
 
-  // Initialize with default currencies
-  const defaultCurrencies = ['$', 'CDF'];
-  defaultCurrencies.forEach(currency => {
-    if (!totalsByCurrency[currency]) {
-      totalsByCurrency[currency] = 0;
-    }
-  });
-
   if (loading) {
     return <div className="flex items-center justify-center h-full">Chargement...</div>;
   }
@@ -201,7 +193,9 @@ export default function HistoryPage() {
           <div>
             <p className="text-gray-600">Résultats : {filteredOutputs.length} sortie(s)</p>
             <div className="space-y-1">
-              {Object.entries(totalsByCurrency).map(([currency, total]) => (
+              {Object.entries(totalsByCurrency)
+                .filter(([_, total]) => total > 0)
+                .map(([currency, total]) => (
                 <p key={currency} className="text-2xl font-bold text-gray-800">
                   Total : {formatCurrency(total, currency)}
                 </p>
