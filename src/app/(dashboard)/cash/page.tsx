@@ -11,7 +11,7 @@ import { Card } from '@/components/ui/Card';
 import { formatCurrency as formatCurrencyUtil } from '@/utils/currency';
 
 export default function CashPage() {
-  const { isAdmin } = useAuth();
+  const { isAdmin, isCashier } = useAuth();
   const [balance, setBalance] = useState<CashBalance | null>(null);
   const [entries, setEntries] = useState<CashEntry[]>([]);
   const [outputs, setOutputs] = useState<Output[]>([]);
@@ -210,10 +210,10 @@ export default function CashPage() {
 
       {/* Actions */}
       <div className="flex space-x-4">
-        {isAdmin && (
+        {(isAdmin || isCashier) && (
           <Button onClick={() => setShowAddEntryModal(true)}>+ Ajouter une entrée</Button>
         )}
-        {isAdmin && (
+        {(isAdmin || isCashier) && (
           <Button variant="secondary" onClick={() => setShowSetBalanceModal(true)}>
             Définir solde initial
           </Button>
