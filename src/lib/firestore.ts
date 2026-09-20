@@ -14,6 +14,7 @@ import {
   Timestamp,
   runTransaction,
   serverTimestamp,
+  writeBatch,
 } from 'firebase/firestore';
 
 import { db } from './firebase';
@@ -908,6 +909,62 @@ export const getAllAuditLogs = async (): Promise<
           : null,
     };
   });
+};
+
+export const getAuditLogsByDate = async (date: string): Promise<AuditLog[]> => {
+  const q = query(
+    collection(db, COLLECTIONS.AUDIT_LOGS),
+    where('date', '==', date),
+    orderBy('created_at', 'desc')
+  );
+
+  const querySnapshot = await getDocs(q);
+
+  return querySnapshot.docs.map((document) => {
+    const data = document.data();
+
+    return {
+      id: document.id,
+      date: String(data.date ?? ''),
+      time: String(data.time ?? ''),
+      user_id: String(data.user_id ?? ''),
+      username: String(data.username ?? ''),
+      role: String(data.role ?? ''),
+      action: String(data.action ?? ''),
+      element: String(data.element ?? ''),
+      output_number:
+        data.output_number !== undefined &&
+        data.output_number !== null
+          ? String(data.output_number)
+          : null,
+      old_value:
+        data.old_value !== undefined &&
+        data.old_value !== null
+          ? String(data.old_value)
+          : null,
+      new_value:
+        data.new_value !== undefined &&
+        data.new_value !== null
+          ? String(data.new_value)
+          : null,
+    };
+  });
+};
+
+export const deleteAuditLogsByDate = async (date: string): Promise<void> => {
+  const q = query(
+    collection(db, COLLECTIONS.AUDIT_LOGS),
+    where('date', '==', date)
+  );
+
+  const querySnapshot = await getDocs(q);
+
+  const batch = writeBatch(db);
+  querySnapshot.docs.forEach((doc) => {
+    batch.delete(doc.ref);
+  });
+
+  await batch.commit();
 };
 
 // -----------------------------------------------------------------------------
