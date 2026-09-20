@@ -2,7 +2,7 @@
 
 import React, { useEffect, useState, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { updateOutput, getAllCategories, getOutputById, getCompanySettings } from '@/lib/firestore';
+import { updateOutput, getAllCategories, getOutputById, getCompanySettings, logAuditAction } from '@/lib/firestore';
 import { Output, CompanySettings } from '@/types';
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/Button';
@@ -99,6 +99,24 @@ function EditOutputContent() {
         reference: formData.reference,
         observation: formData.observation,
       });
+
+      // Log de modification de sortie
+      if (user) {
+        try {
+          await logAuditAction(
+            user.id,
+            user.username,
+            user.role,
+            'Modification',
+            'Sortie',
+            output.number,
+            `${oldAmount} ${output.currency}`,
+            `${newAmount} ${formData.currency}`
+          );
+        } catch (error) {
+          console.error('Failed to log edit output action:', error);
+        }
+      }
 
       // Adjust cash balance if amount changed
       if (oldAmount !== newAmount) {

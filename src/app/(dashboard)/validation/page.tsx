@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useEffect, useState } from 'react';
-import { getPendingOutputs, approveOutput, rejectOutput, getCompanySettings } from '@/lib/firestore';
+import { getPendingOutputs, approveOutput, rejectOutput, getCompanySettings, logAuditAction } from '@/lib/firestore';
 import { Output, CompanySettings } from '@/types';
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/Button';
@@ -46,7 +46,27 @@ export default function ValidationPage() {
   const handleApprove = async (outputId: string) => {
     if (!user) return;
     try {
+      const outputToApprove = pendingOutputs.find(o => o.id === outputId);
       await approveOutput(outputId, user.id, user.username);
+
+      // Log d'approbation de sortie
+      if (outputToApprove) {
+        try {
+          await logAuditAction(
+            user.id,
+            user.username,
+            user.role,
+            'Approbation',
+            'Sortie',
+            outputToApprove.number,
+            'En attente',
+            'Approuvé'
+          );
+        } catch (error) {
+          console.error('Failed to log approve output action:', error);
+        }
+      }
+
       await loadPendingOutputs();
     } catch (error) {
       console.error('Failed to approve output:', error);
@@ -58,6 +78,23 @@ export default function ValidationPage() {
     if (!user || !selectedOutput) return;
     try {
       await rejectOutput(selectedOutput.id, user.id, user.username, rejectionReason);
+
+      // Log de rejet de sortie
+      try {
+        await logAuditAction(
+          user.id,
+          user.username,
+          user.role,
+          'Rejet',
+          'Sortie',
+          selectedOutput.number,
+          'En attente',
+          `Rejeté: ${rejectionReason}`
+        );
+      } catch (error) {
+        console.error('Failed to log reject output action:', error);
+      }
+
       setShowRejectModal(false);
       setRejectionReason('');
       setSelectedOutput(null);

@@ -3,7 +3,7 @@
 import React, { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/contexts/AuthContext';
-import { createOutput, getAllCategories, getCompanySettings } from '@/lib/firestore';
+import { createOutput, getAllCategories, getCompanySettings, logAuditAction } from '@/lib/firestore';
 import { CompanySettings } from '@/types';
 import { Input } from '@/components/ui/Input';
 import { Select } from '@/components/ui/Select';
@@ -62,7 +62,7 @@ export default function NewOutputPage() {
 
     try {
       const category = categories.find(c => c.value === formData.category_id);
-      await createOutput({
+      const output = await createOutput({
         date: new Date().toISOString().split('T')[0],
         category_id: formData.category_id,
         category_name: category?.label || '',
@@ -77,6 +77,25 @@ export default function NewOutputPage() {
         created_by_username: user?.username || '',
         created_at: new Date().toISOString(),
       });
+
+      // Log de création de sortie
+      if (user) {
+        try {
+          await logAuditAction(
+            user.id,
+            user.username,
+            user.role,
+            'Création',
+            'Sortie',
+            output.number,
+            undefined,
+            `${formData.amount} ${formData.currency}`
+          );
+        } catch (error) {
+          console.error('Failed to log create output action:', error);
+        }
+      }
+
       router.push('/history');
     } catch (error) {
       console.error('Failed to create output:', error);

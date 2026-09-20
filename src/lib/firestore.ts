@@ -840,6 +840,35 @@ export const createAuditLog = async (
   };
 };
 
+// Fonction utilitaire pour créer facilement des logs d'audit
+export const logAuditAction = async (
+  userId: string,
+  username: string,
+  role: string,
+  action: string,
+  element: string,
+  outputNumber?: string,
+  oldValue?: string,
+  newValue?: string
+): Promise<void> => {
+  const now = new Date();
+  const date = now.toISOString().split('T')[0];
+  const time = now.toTimeString().split(' ')[0];
+
+  await createAuditLog({
+    date,
+    time,
+    user_id: userId,
+    username,
+    role,
+    action,
+    element,
+    output_number: outputNumber || null,
+    old_value: oldValue || null,
+    new_value: newValue || null,
+  });
+};
+
 export const getAllAuditLogs = async (): Promise<
   AuditLog[]
 > => {

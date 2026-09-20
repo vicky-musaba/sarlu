@@ -4,7 +4,7 @@ import React, { createContext, useContext, useState, useEffect } from 'react';
 import { User } from 'firebase/auth';
 import { auth } from '@/lib/firebase';
 import { onAuthStateChanged, signInWithEmailAndPassword, signOut as firebaseSignOut } from 'firebase/auth';
-import { getUser } from '@/lib/firestore';
+import { getUser, logAuditAction } from '@/lib/firestore';
 import { User as AppUser } from '@/types';
 
 interface AuthContextType {
@@ -44,6 +44,18 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           if (appUser) {
             setUser(appUser);
             console.log('User loaded from Firestore:', appUser);
+            // Log de connexion
+            try {
+              await logAuditAction(
+                appUser.id,
+                appUser.username,
+                appUser.role,
+                'Connexion',
+                'Authentification'
+              );
+            } catch (error) {
+              console.error('Failed to log login action:', error);
+            }
           } else {
             console.warn('User not found in Firestore, creating default user');
             // Create default user in Firestore if not exists
@@ -82,6 +94,20 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   const logout = async () => {
+    // Log de déconnexion avant de se déconnecter
+    if (user) {
+      try {
+        await logAuditAction(
+          user.id,
+          user.username,
+          user.role,
+          'Déconnexion',
+          'Authentification'
+        );
+      } catch (error) {
+        console.error('Failed to log logout action:', error);
+      }
+    }
     await firebaseSignOut(auth);
   };
 

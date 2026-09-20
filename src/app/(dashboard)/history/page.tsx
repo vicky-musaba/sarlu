@@ -2,7 +2,7 @@
 
 import React, { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { getAllOutputs, deleteOutput, getCompanySettings } from '@/lib/firestore';
+import { getAllOutputs, deleteOutput, getCompanySettings, logAuditAction } from '@/lib/firestore';
 import { Output, CompanySettings } from '@/types';
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/Button';
@@ -13,7 +13,7 @@ import { formatCurrency as formatCurrencyUtil } from '@/utils/currency';
 
 export default function HistoryPage() {
   const router = useRouter();
-  const { isAdmin } = useAuth();
+  const { isAdmin, user } = useAuth();
   const [outputs, setOutputs] = useState<Output[]>([]);
   const [filteredOutputs, setFilteredOutputs] = useState<Output[]>([]);
   const [companySettings, setCompanySettings] = useState<CompanySettings | null>(null);
@@ -90,7 +90,27 @@ export default function HistoryPage() {
   const handleDelete = async (id: string, amount: number) => {
     if (confirm('Êtes-vous sûr de vouloir supprimer cette sortie ?')) {
       try {
+        const outputToDelete = outputs.find(o => o.id === id);
         await deleteOutput(id, amount);
+
+        // Log de suppression de sortie
+        if (user && outputToDelete) {
+          try {
+            await logAuditAction(
+              user.id,
+              user.username,
+              user.role,
+              'Suppression',
+              'Sortie',
+              outputToDelete.number,
+              `${outputToDelete.amount} ${outputToDelete.currency}`,
+              undefined
+            );
+          } catch (error) {
+            console.error('Failed to log delete output action:', error);
+          }
+        }
+
         await loadOutputs();
       } catch (error) {
         console.error('Failed to delete output:', error);
