@@ -152,7 +152,8 @@ export default function HistoryPage() {
 
   // Calculate totals by currency
   const totalsByCurrency = filteredOutputs.reduce((acc, output) => {
-    const currency = output.currency || '$';
+    // Normalize FC to CDF
+    const currency = output.currency === 'FC' ? 'CDF' : (output.currency || '$');
     if (!acc[currency]) {
       acc[currency] = 0;
     }

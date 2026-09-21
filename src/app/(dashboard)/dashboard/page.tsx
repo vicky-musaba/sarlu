@@ -71,7 +71,8 @@ export default function DashboardPage() {
       // Calculate stats by currency
       const statsByCurrency: StatsByCurrency = {};
       outputs.forEach(o => {
-        const currency = o.currency || '$';
+        // Normalize FC to CDF
+        const currency = o.currency === 'FC' ? 'CDF' : (o.currency || '$');
         if (!statsByCurrency[currency]) {
           statsByCurrency[currency] = {
             today_total: 0,
@@ -118,7 +119,8 @@ export default function DashboardPage() {
 
       // Group outputs by currency for display
       const outputsByCurrencyData = outputs.reduce((acc, output) => {
-        const currency = output.currency || '$';
+        // Normalize FC to CDF
+        const currency = output.currency === 'FC' ? 'CDF' : (output.currency || '$');
         if (!acc[currency]) {
           acc[currency] = [];
         }

@@ -109,7 +109,8 @@ export default function CashPage() {
 
     // Calculate from entries
     entries.forEach(entry => {
-      const currency = entry.currency || '$';
+      // Normalize FC to CDF
+      const currency = entry.currency === 'FC' ? 'CDF' : (entry.currency || '$');
       if (!balances[currency]) {
         balances[currency] = { initial_balance: 0, current_balance: 0, total_entries: 0, total_outputs: 0 };
       }
@@ -120,7 +121,8 @@ export default function CashPage() {
     // Calculate from outputs (only approved ones)
     const approvedOutputs = outputs.filter(o => o.status === 'approved');
     approvedOutputs.forEach(output => {
-      const currency = output.currency || '$';
+      // Normalize FC to CDF
+      const currency = output.currency === 'FC' ? 'CDF' : (output.currency || '$');
       if (!balances[currency]) {
         balances[currency] = { initial_balance: 0, current_balance: 0, total_entries: 0, total_outputs: 0 };
       }
