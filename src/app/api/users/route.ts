@@ -4,20 +4,40 @@ import { getFirestore } from 'firebase-admin/firestore';
 import admin from 'firebase-admin';
 
 // Initialize Firebase Admin
-if (!admin.apps.length) {
-  const serviceAccount = JSON.parse(
-    process.env.FIREBASE_SERVICE_ACCOUNT_KEY || '{}'
-  );
+let auth: any;
+let db: any;
 
-  admin.initializeApp({
-    credential: admin.credential.cert(serviceAccount),
-  });
+try {
+  if (!admin.apps.length) {
+    const serviceAccountKey = process.env.FIREBASE_SERVICE_ACCOUNT_KEY;
+
+    if (!serviceAccountKey) {
+      console.warn('FIREBASE_SERVICE_ACCOUNT_KEY not set - User creation API will not work');
+    } else {
+      const serviceAccount = JSON.parse(serviceAccountKey);
+      admin.initializeApp({
+        credential: admin.credential.cert(serviceAccount),
+      });
+    }
+  }
+
+  if (admin.apps.length > 0) {
+    auth = getAuth();
+    db = getFirestore();
+  }
+} catch (error) {
+  console.error('Error initializing Firebase Admin:', error);
 }
 
-const auth = getAuth();
-const db = getFirestore();
-
 export async function POST(request: NextRequest) {
+  // Check if Firebase Admin is initialized
+  if (!auth || !db) {
+    return NextResponse.json(
+      { error: 'Firebase Admin SDK not configured. Please set FIREBASE_SERVICE_ACCOUNT_KEY environment variable.' },
+      { status: 500 }
+    );
+  }
+
   try {
     const body = await request.json();
     const { email, password, username, role } = body;
