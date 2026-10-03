@@ -19,7 +19,7 @@ export default function SettingsPage() {
   const [success, setSuccess] = useState('');
   const [error, setError] = useState('');
   const [editingUser, setEditingUser] = useState<User | null>(null);
-  const [userFormData, setUserFormData] = useState({ username: '', password: '', role: 'cashier' });
+  const [userFormData, setUserFormData] = useState({ email: '', password: '', username: '', role: 'cashier' });
   const [settingsFormData, setSettingsFormData] = useState({
     name: '',
     address: '',
@@ -72,17 +72,34 @@ export default function SettingsPage() {
 
   const handleAddUser = async (e: React.FormEvent) => {
     e.preventDefault();
+    setError('');
+    setSuccess('');
+
     try {
-      // Create user in Firebase Auth first (needs to be done via Firebase Console for now)
-      // Then create in Firestore
-      await createUser({
-        username: userFormData.username,
-        role: userFormData.role as 'admin' | 'cashier',
-        created_at: new Date().toISOString(),
+      // Call API to create user in both Firebase Auth and Firestore
+      const response = await fetch('/api/users', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          email: userFormData.email,
+          password: userFormData.password,
+          username: userFormData.username,
+          role: userFormData.role,
+        }),
       });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        setError(data.error || 'Erreur lors de la création de l\'utilisateur');
+        return;
+      }
+
       await loadData();
       setShowAddUserModal(false);
-      setUserFormData({ username: '', password: '', role: 'cashier' });
+      setUserFormData({ email: '', password: '', username: '', role: 'cashier' });
       setSuccess('Utilisateur créé avec succès');
     } catch (error) {
       console.error('Failed to add user:', error);
@@ -96,12 +113,12 @@ export default function SettingsPage() {
     try {
       await updateUser(editingUser.id, {
         username: userFormData.username,
-        role: userFormData.role as 'admin' | 'cashier',
+        role: userFormData.role as 'admin' | 'supervisor' | 'auditor' | 'cashier' | 'financial_controller',
       });
       await loadData();
       setShowEditUserModal(false);
       setEditingUser(null);
-      setUserFormData({ username: '', password: '', role: 'cashier' });
+      setUserFormData({ email: '', username: '', password: '', role: 'cashier' });
       setSuccess('Utilisateur modifié avec succès');
     } catch (error) {
       console.error('Failed to update user:', error);
@@ -136,7 +153,7 @@ export default function SettingsPage() {
 
   const openEditUserModal = (user: User) => {
     setEditingUser(user);
-    setUserFormData({ username: user.username, password: '', role: user.role });
+    setUserFormData({ email: '', username: user.username, password: '', role: user.role });
     setShowEditUserModal(true);
   };
 
@@ -224,7 +241,7 @@ export default function SettingsPage() {
                 <tr key={u.id} className="hover:bg-gray-50">
                   <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{u.username}</td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 capitalize">
-                    {u.role === 'admin' ? 'Administrateur' : 'Caissière'}
+                    {u.role === 'admin' ? 'Administrateur' : u.role === 'supervisor' ? 'Superviseur' : u.role === 'auditor' ? 'Auditrice' : u.role === 'cashier' ? 'Caissière' : u.role === 'financial_controller' ? 'Contrôleur Financier' : 'Inconnu'}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                     {new Date(u.created_at).toLocaleDateString('fr-FR')}
@@ -253,6 +270,13 @@ export default function SettingsPage() {
             <h2 className="text-xl font-bold mb-4">Ajouter un utilisateur</h2>
             <form onSubmit={handleAddUser} className="space-y-4">
               <Input
+                label="Email"
+                type="email"
+                value={userFormData.email}
+                onChange={(e) => setUserFormData({ ...userFormData, email: e.target.value })}
+                required
+              />
+              <Input
                 label="Nom d'utilisateur"
                 value={userFormData.username}
                 onChange={(e) => setUserFormData({ ...userFormData, username: e.target.value })}
@@ -264,6 +288,7 @@ export default function SettingsPage() {
                 value={userFormData.password}
                 onChange={(e) => setUserFormData({ ...userFormData, password: e.target.value })}
                 required
+                minLength={6}
               />
               <Select
                 label="Rôle"
@@ -274,6 +299,7 @@ export default function SettingsPage() {
                   { value: 'supervisor', label: 'Superviseur' },
                   { value: 'auditor', label: 'Auditrice' },
                   { value: 'cashier', label: 'Caissière' },
+                  { value: 'financial_controller', label: 'Contrôleur Financier' },
                 ]}
               />
               <div className="flex space-x-4">
@@ -283,7 +309,7 @@ export default function SettingsPage() {
                   variant="secondary"
                   onClick={() => {
                     setShowAddUserModal(false);
-                    setUserFormData({ username: '', password: '', role: 'cashier' });
+                    setUserFormData({ email: '', password: '', username: '', role: 'cashier' });
                   }}
                 >
                   Annuler
@@ -315,6 +341,7 @@ export default function SettingsPage() {
                   { value: 'supervisor', label: 'Superviseur' },
                   { value: 'auditor', label: 'Auditrice' },
                   { value: 'cashier', label: 'Caissière' },
+                  { value: 'financial_controller', label: 'Contrôleur Financier' },
                 ]}
               />
               <div className="flex space-x-4">
@@ -325,7 +352,7 @@ export default function SettingsPage() {
                   onClick={() => {
                     setShowEditUserModal(false);
                     setEditingUser(null);
-                    setUserFormData({ username: '', password: '', role: 'cashier' });
+                    setUserFormData({ email: '', username: '', password: '', role: 'cashier' });
                   }}
                 >
                   Annuler

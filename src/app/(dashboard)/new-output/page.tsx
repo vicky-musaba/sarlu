@@ -13,7 +13,7 @@ import { formatCurrency as formatCurrencyUtil } from '@/utils/currency';
 
 export default function NewOutputPage() {
   const router = useRouter();
-  const { user } = useAuth();
+  const { user, isAdmin, isCashier } = useAuth();
   const [loading, setLoading] = useState(false);
   const [categories, setCategories] = useState<Array<{ value: string; label: string }>>([]);
   const [companySettings, setCompanySettings] = useState<CompanySettings | null>(null);
@@ -111,6 +111,14 @@ export default function NewOutputPage() {
     if (isNaN(amount)) return '';
     return formatCurrencyUtil(amount, formData.currency);
   };
+
+  if (!isAdmin && !isCashier) {
+    return (
+      <div className="flex items-center justify-center h-full">
+        <p className="text-red-600">Accès non autorisé. Cette page est réservée aux administrateurs et caissières.</p>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">

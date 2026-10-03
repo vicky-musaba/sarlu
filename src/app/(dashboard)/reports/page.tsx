@@ -3,6 +3,7 @@
 import React, { useEffect, useState } from 'react';
 import { getOutputsByDateRange, getCompanySettings } from '@/lib/firestore';
 import { Output, ReportData, CompanySettings } from '@/types';
+import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 import { Card } from '@/components/ui/Card';
@@ -13,6 +14,7 @@ import { saveAs } from 'file-saver';
 import { formatCurrency as formatCurrencyUtil } from '@/utils/currency';
 
 export default function ReportsPage() {
+  const { isAdmin, isAuditor, isFinancialController } = useAuth();
   const [reportData, setReportData] = useState<ReportData | null>(null);
   const [companySettings, setCompanySettings] = useState<CompanySettings | null>(null);
   const [loading, setLoading] = useState(false);
@@ -164,6 +166,14 @@ export default function ReportsPage() {
   const formatCurrency = (amount: number, currency?: string) => {
     return formatCurrencyUtil(amount, currency || companySettings?.currency || '$');
   };
+
+  if (!isAdmin && !isAuditor && !isFinancialController) {
+    return (
+      <div className="flex items-center justify-center h-full">
+        <p className="text-red-600">Accès non autorisé. Cette page est réservée aux administrateurs, auditeurs et contrôleurs financiers.</p>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">

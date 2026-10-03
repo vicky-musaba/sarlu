@@ -13,7 +13,7 @@ import { formatCurrency as formatCurrencyUtil } from '@/utils/currency';
 
 export default function HistoryPage() {
   const router = useRouter();
-  const { isAdmin, user } = useAuth();
+  const { isAdmin, user, isFinancialController } = useAuth();
   const [outputs, setOutputs] = useState<Output[]>([]);
   const [filteredOutputs, setFilteredOutputs] = useState<Output[]>([]);
   const [companySettings, setCompanySettings] = useState<CompanySettings | null>(null);

@@ -9,8 +9,8 @@ import { Card } from '@/components/ui/Card';
 import { formatCurrency as formatCurrencyUtil } from '@/utils/currency';
 
 export default function ValidationPage() {
-  const { user, isSupervisor, isAuditor, isAdmin } = useAuth();
-  const canApproveReject = isSupervisor || isAdmin;
+  const { user, isSupervisor, isAuditor, isAdmin, isFinancialController } = useAuth();
+  const canApproveReject = isSupervisor || isAdmin || isFinancialController;
   const [pendingOutputs, setPendingOutputs] = useState<Output[]>([]);
   const [companySettings, setCompanySettings] = useState<CompanySettings | null>(null);
   const [loading, setLoading] = useState(true);
@@ -114,10 +114,10 @@ export default function ValidationPage() {
     return formatCurrencyUtil(amount, currency || companySettings?.currency || '$');
   };
 
-  if (!isSupervisor && !isAuditor && !isAdmin) {
+  if (!isSupervisor && !isAuditor && !isAdmin && !isFinancialController) {
     return (
       <div className="flex items-center justify-center h-full">
-        <p className="text-red-600">Accès non autorisé. Cette page est réservée aux superviseurs, auditeurs et administrateurs.</p>
+        <p className="text-red-600">Accès non autorisé. Cette page est réservée aux superviseurs, auditeurs, contrôleurs financiers et administrateurs.</p>
       </div>
     );
   }

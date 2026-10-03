@@ -3,6 +3,7 @@
 import React, { useEffect, useState } from 'react';
 import { getAllAuditLogs, getAuditLogsByDate, deleteAuditLogsByDate } from '@/lib/firestore';
 import { AuditLog } from '@/types';
+import { useAuth } from '@/contexts/AuthContext';
 import { Card } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
@@ -10,6 +11,7 @@ import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 
 export default function AuditPage() {
+  const { isAdmin, isAuditor, isFinancialController } = useAuth();
   const [logs, setLogs] = useState<AuditLog[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedDate, setSelectedDate] = useState('');
@@ -127,6 +129,14 @@ export default function AuditPage() {
 
   if (loading) {
     return <div className="flex items-center justify-center h-full">Chargement...</div>;
+  }
+
+  if (!isAdmin && !isAuditor && !isFinancialController) {
+    return (
+      <div className="flex items-center justify-center h-full">
+        <p className="text-red-600">Accès non autorisé. Cette page est réservée aux administrateurs, auditeurs et contrôleurs financiers.</p>
+      </div>
+    );
   }
 
   return (
