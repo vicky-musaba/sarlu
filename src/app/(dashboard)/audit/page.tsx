@@ -11,7 +11,7 @@ import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 
 export default function AuditPage() {
-  const { isAdmin, isAuditor, isFinancialController } = useAuth();
+  const { isAdmin, isAuditor } = useAuth();
   const [logs, setLogs] = useState<AuditLog[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedDate, setSelectedDate] = useState('');
@@ -131,10 +131,10 @@ export default function AuditPage() {
     return <div className="flex items-center justify-center h-full">Chargement...</div>;
   }
 
-  if (!isAdmin && !isAuditor && !isFinancialController) {
+  if (!isAdmin && !isAuditor) {
     return (
       <div className="flex items-center justify-center h-full">
-        <p className="text-red-600">Accès non autorisé. Cette page est réservée aux administrateurs, auditeurs et contrôleurs financiers.</p>
+        <p className="text-red-600">Accès non autorisé. Cette page est réservée aux administrateurs et auditeurs.</p>
       </div>
     );
   }

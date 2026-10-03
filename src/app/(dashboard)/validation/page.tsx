@@ -114,10 +114,10 @@ export default function ValidationPage() {
     return formatCurrencyUtil(amount, currency || companySettings?.currency || '$');
   };
 
-  if (!isSupervisor && !isAuditor && !isAdmin && !isFinancialController) {
+  if (!isSupervisor && !isAdmin && !isFinancialController) {
     return (
       <div className="flex items-center justify-center h-full">
-        <p className="text-red-600">Accès non autorisé. Cette page est réservée aux superviseurs, auditeurs, contrôleurs financiers et administrateurs.</p>
+        <p className="text-red-600">Accès non autorisé. Cette page est réservée aux superviseurs, contrôleurs financiers et administrateurs.</p>
       </div>
     );
   }

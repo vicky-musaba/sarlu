@@ -6,14 +6,14 @@ import { usePathname, useRouter } from 'next/navigation';
 import { useAuth } from '@/contexts/AuthContext';
 
 const menuItems = [
-  { path: '/dashboard', icon: '🏠', label: 'Tableau de bord', roles: ['admin', 'supervisor', 'auditor', 'cashier', 'financial_controller'] },
+  { path: '/dashboard', icon: '🏠', label: 'Tableau de bord', roles: ['admin', 'supervisor', 'auditor', 'cashier'] },
   { path: '/new-output', icon: '💰', label: 'Nouvelle sortie', roles: ['admin', 'cashier'] },
   { path: '/validation', icon: '✅', label: 'Validation', roles: ['admin', 'supervisor', 'financial_controller'] },
-  { path: '/history', icon: '📋', label: 'Historique', roles: ['admin', 'supervisor', 'auditor', 'cashier', 'financial_controller'] },
+  { path: '/history', icon: '📋', label: 'Historique', roles: ['admin', 'supervisor', 'auditor', 'cashier'] },
   { path: '/reports', icon: '📊', label: 'Rapports', roles: ['admin', 'auditor', 'financial_controller'] },
   { path: '/categories', icon: '🏷️', label: 'Catégories', roles: ['admin'] },
   { path: '/cash', icon: '💵', label: 'Caisse', roles: ['admin', 'supervisor', 'auditor', 'cashier', 'financial_controller'] },
-  { path: '/audit', icon: '🧾', label: 'Journal d\'audit', roles: ['admin', 'auditor', 'financial_controller'] },
+  { path: '/audit', icon: '🧾', label: 'Journal d\'audit', roles: ['admin', 'auditor'] },
   { path: '/backup', icon: '💾', label: 'Sauvegardes', roles: ['admin'] },
   { path: '/settings', icon: '⚙️', label: 'Paramètres', roles: ['admin'] },
   { path: '/diagnostic', icon: '🔧', label: 'Diagnostic', roles: ['admin'] },

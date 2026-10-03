@@ -11,7 +11,7 @@ import { Card } from '@/components/ui/Card';
 import { formatCurrency as formatCurrencyUtil } from '@/utils/currency';
 
 export default function CashPage() {
-  const { isAdmin, isCashier, isFinancialController } = useAuth();
+  const { isAdmin, isCashier, isFinancialController, isSupervisor, isAuditor } = useAuth();
   const [balance, setBalance] = useState<CashBalance | null>(null);
   const [entries, setEntries] = useState<CashEntry[]>([]);
   const [outputs, setOutputs] = useState<Output[]>([]);
@@ -149,6 +149,9 @@ export default function CashPage() {
     return <div className="flex items-center justify-center h-full">Chargement...</div>;
   }
 
+  // Financial controller can only view cash balance, not add entries or set balance
+  const isReadOnly = isFinancialController;
+
   return (
     <div className="space-y-6">
       <h1 className="text-3xl font-bold text-gray-800">Caisse</h1>
@@ -211,16 +214,25 @@ export default function CashPage() {
       </div>
 
       {/* Actions */}
-      <div className="flex space-x-4">
-        {(isAdmin || isCashier) && (
-          <Button onClick={() => setShowAddEntryModal(true)}>+ Ajouter une entrée</Button>
-        )}
-        {isAdmin && (
-          <Button variant="secondary" onClick={() => setShowSetBalanceModal(true)}>
-            Définir solde initial
-          </Button>
-        )}
-      </div>
+      {!isReadOnly && (
+        <div className="flex space-x-4">
+          {(isAdmin || isCashier) && (
+            <Button onClick={() => setShowAddEntryModal(true)}>+ Ajouter une entrée</Button>
+          )}
+          {isAdmin && (
+            <Button variant="secondary" onClick={() => setShowSetBalanceModal(true)}>
+              Définir solde initial
+            </Button>
+          )}
+        </div>
+      )}
+      {isReadOnly && (
+        <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
+          <p className="text-yellow-800">
+            <strong>Mode lecture seule :</strong> En tant que Contrôleur Financier, vous pouvez consulter les soldes de caisse mais ne pouvez pas ajouter d'entrées ou modifier le solde initial.
+          </p>
+        </div>
+      )}
 
       {/* Entries Table */}
       <Card>
