@@ -3,7 +3,7 @@
 import React, { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/contexts/AuthContext';
-import { createOutput, getAllCategories, getCompanySettings, logAuditAction } from '@/lib/firestore';
+import { createOutput, getAllCategories, getCompanySettings, logAuditAction, getCashBalance } from '@/lib/firestore';
 import { CompanySettings } from '@/types';
 import { Input } from '@/components/ui/Input';
 import { Select } from '@/components/ui/Select';
@@ -17,6 +17,7 @@ export default function NewOutputPage() {
   const [loading, setLoading] = useState(false);
   const [categories, setCategories] = useState<Array<{ value: string; label: string }>>([]);
   const [companySettings, setCompanySettings] = useState<CompanySettings | null>(null);
+  const [cashBalance, setCashBalance] = useState<number>(0);
   const [formData, setFormData] = useState({
     category_id: '',
     amount: '',
@@ -32,6 +33,7 @@ export default function NewOutputPage() {
   React.useEffect(() => {
     loadCategories();
     loadCompanySettings();
+    loadCashBalance();
   }, []);
 
   const loadCategories = async () => {
@@ -56,11 +58,35 @@ export default function NewOutputPage() {
     }
   };
 
+  const loadCashBalance = async () => {
+    try {
+      const balance = await getCashBalance();
+      setCashBalance(balance.current_balance);
+    } catch (error) {
+      console.error('Failed to load cash balance:', error);
+    }
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
 
     try {
+      const amount = parseFloat(formData.amount);
+
+      // Check if cash balance is sufficient
+      if (cashBalance <= 0) {
+        alert('❌ Le solde de caisse est vide. Impossible de créer une sortie.');
+        setLoading(false);
+        return;
+      }
+
+      if (amount > cashBalance) {
+        alert(`❌ Solde insuffisant. Le solde actuel est de ${formatCurrencyUtil(cashBalance, formData.currency || companySettings?.currency || '$')} et vous essayez de retirer ${formatCurrencyUtil(amount, formData.currency)}.`);
+        setLoading(false);
+        return;
+      }
+
       const category = categories.find(c => c.value === formData.category_id);
       const output = await createOutput({
         date: new Date().toISOString().split('T')[0],
@@ -123,6 +149,27 @@ export default function NewOutputPage() {
   return (
     <div className="space-y-6">
       <h1 className="text-3xl font-bold text-gray-800">Nouvelle Sortie</h1>
+
+      {/* Cash Balance Warning */}
+      <Card>
+        <div className={`p-4 rounded-lg ${cashBalance <= 0 ? 'bg-red-50 border border-red-200' : cashBalance < 100 ? 'bg-yellow-50 border border-yellow-200' : 'bg-green-50 border border-green-200'}`}>
+          <p className={`font-medium ${cashBalance <= 0 ? 'text-red-800' : cashBalance < 100 ? 'text-yellow-800' : 'text-green-800'}`}>
+            {cashBalance <= 0 ? (
+              <>
+                ⚠️ <strong>Solde vide :</strong> Le solde de caisse est vide ({formatCurrencyUtil(cashBalance, companySettings?.currency || '$')}). Aucune sortie ne peut être effectuée.
+              </>
+            ) : cashBalance < 100 ? (
+              <>
+                ⚠️ <strong>Solde faible :</strong> Le solde actuel est de {formatCurrencyUtil(cashBalance, companySettings?.currency || '$')}.
+              </>
+            ) : (
+              <>
+                ✅ <strong>Solde disponible :</strong> {formatCurrencyUtil(cashBalance, companySettings?.currency || '$')}
+              </>
+            )}
+          </p>
+        </div>
+      </Card>
 
       <Card>
         <form onSubmit={handleSubmit} className="space-y-4">
@@ -222,8 +269,11 @@ export default function NewOutputPage() {
           </div>
 
           <div className="flex space-x-4">
-            <Button type="submit" disabled={loading}>
-              {loading ? 'Création...' : 'Créer'}
+            <Button
+              type="submit"
+              disabled={loading || cashBalance <= 0}
+            >
+              {loading ? 'Création...' : cashBalance <= 0 ? 'Solde vide - Impossible de créer' : 'Créer'}
             </Button>
             <Button
               type="button"
