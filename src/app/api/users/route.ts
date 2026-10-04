@@ -1,35 +1,52 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getAuth } from 'firebase-admin/auth';
-import { getFirestore } from 'firebase-admin/firestore';
 import admin from 'firebase-admin';
 
-// Initialize Firebase Admin
-let auth: any;
-let db: any;
+// Initialize Firebase Admin lazily
+let auth: any = null;
+let db: any = null;
 
-try {
-  if (!admin.apps.length) {
+function initializeFirebaseAdmin() {
+  if (auth && db) {
+    return { auth, db };
+  }
+
+  try {
     const serviceAccountKey = process.env.FIREBASE_SERVICE_ACCOUNT_KEY;
 
     if (!serviceAccountKey) {
       console.warn('FIREBASE_SERVICE_ACCOUNT_KEY not set - User creation API will not work');
-    } else {
-      const serviceAccount = JSON.parse(serviceAccountKey);
+      return { auth: null, db: null };
+    }
+
+    const serviceAccount = JSON.parse(serviceAccountKey);
+
+    // @ts-ignore
+    if (!admin.apps || !admin.apps.length) {
+      // @ts-ignore
       admin.initializeApp({
+        // @ts-ignore
         credential: admin.credential.cert(serviceAccount),
       });
     }
-  }
 
-  if (admin.apps.length > 0) {
-    auth = getAuth();
-    db = getFirestore();
+    // @ts-ignore
+    auth = admin.auth();
+    // @ts-ignore
+    db = admin.firestore();
+
+    return { auth, db };
+  } catch (error) {
+    console.error('Error initializing Firebase Admin:', error);
+    return { auth: null, db: null };
   }
-} catch (error) {
-  console.error('Error initializing Firebase Admin:', error);
 }
 
 export async function POST(request: NextRequest) {
+  // Initialize Firebase Admin if not already done
+  const firebase = initializeFirebaseAdmin();
+  auth = firebase.auth;
+  db = firebase.db;
+
   // Check if Firebase Admin is initialized
   if (!auth || !db) {
     return NextResponse.json(
@@ -60,14 +77,14 @@ export async function POST(request: NextRequest) {
     }
 
     // Create user in Firebase Authentication
-    const userRecord = await auth.createUser({
+    const userRecord = await auth!.createUser({
       email,
       password,
       displayName: username,
     });
 
     // Create user in Firestore
-    await db.collection('users').doc(userRecord.uid).set({
+    await db!.collection('users').doc(userRecord.uid).set({
       username,
       role,
       created_at: new Date().toISOString(),
