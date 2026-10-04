@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useEffect, useState } from 'react';
-import { getCashBalance, getAllCashEntries, createCashEntry, setInitialBalance, getCompanySettings, getAllOutputs } from '@/lib/firestore';
+import { getCashBalance, getAllCashEntries, createCashEntry, setInitialBalance, getCompanySettings, getAllOutputs, deleteCashEntry, logAuditAction } from '@/lib/firestore';
 import { CashBalance, CashEntry, CompanySettings, Output } from '@/types';
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/Button';
@@ -11,7 +11,7 @@ import { Card } from '@/components/ui/Card';
 import { formatCurrency as formatCurrencyUtil } from '@/utils/currency';
 
 export default function CashPage() {
-  const { isAdmin, isCashier, isFinancialController, isSupervisor, isAuditor } = useAuth();
+  const { isAdmin, isCashier, isFinancialController, isSupervisor, isAuditor, user } = useAuth();
   const [balance, setBalance] = useState<CashBalance | null>(null);
   const [entries, setEntries] = useState<CashEntry[]>([]);
   const [outputs, setOutputs] = useState<Output[]>([]);
@@ -84,6 +84,37 @@ export default function CashPage() {
       } catch (error) {
         console.error('Failed to set balance:', error);
         alert('Erreur lors de la modification');
+      }
+    }
+  };
+
+  const handleDeleteEntry = async (entryId: string, amount: number) => {
+    if (confirm('Êtes-vous sûr de vouloir supprimer cette entrée de caisse ? Le solde sera ajusté automatiquement.')) {
+      try {
+        await deleteCashEntry(entryId, amount);
+
+        // Log de suppression d'entrée de caisse
+        if (user) {
+          try {
+            await logAuditAction(
+              user.id,
+              user.username,
+              user.role,
+              'Suppression',
+              'Entrée de caisse',
+              entryId,
+              `${amount} $`,
+              undefined
+            );
+          } catch (error) {
+            console.error('Failed to log delete cash entry action:', error);
+          }
+        }
+
+        await loadData();
+      } catch (error) {
+        console.error('Failed to delete entry:', error);
+        alert('Erreur lors de la suppression');
       }
     }
   };
@@ -246,6 +277,7 @@ export default function CashPage() {
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Montant</th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Devise</th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Créé par</th>
+                {isAdmin && <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>}
               </tr>
             </thead>
             <tbody className="bg-white divide-y divide-gray-200">
@@ -257,11 +289,22 @@ export default function CashPage() {
                     <td className="px-6 py-4 whitespace-nowrap text-sm font-bold text-green-600">{formatCurrency(entry.amount, entry.currency || '$')}</td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{entry.currency || '$'}</td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">{entry.created_by}</td>
+                    {isAdmin && (
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                        <Button
+                          size="sm"
+                          variant="danger"
+                          onClick={() => handleDeleteEntry(entry.id, entry.amount)}
+                        >
+                          🗑️
+                        </Button>
+                      </td>
+                    )}
                   </tr>
                 ))
               ) : (
                 <tr>
-                  <td colSpan={5} className="px-6 py-4 text-center text-sm text-gray-500">
+                  <td colSpan={isAdmin ? 6 : 5} className="px-6 py-4 text-center text-sm text-gray-500">
                     Aucune entrée
                   </td>
                 </tr>

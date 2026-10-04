@@ -789,6 +789,53 @@ export const getAllCashEntries = async (): Promise<
   });
 };
 
+export const deleteCashEntry = async (
+  entryId: string,
+  amount: number
+): Promise<void> => {
+  await runTransaction(db, async (transaction) => {
+    // Get current balance
+    const balanceRef = doc(
+      db,
+      COLLECTIONS.CASH_BALANCE,
+      'current'
+    );
+
+    const balanceDoc = await transaction.get(balanceRef);
+
+    let currentBalance = 0;
+    let totalEntries = 0;
+
+    if (balanceDoc.exists()) {
+      const balanceData = balanceDoc.data();
+
+      currentBalance = Number(
+        balanceData.current_balance ?? 0
+      );
+
+      totalEntries = Number(
+        balanceData.total_entries ?? 0
+      );
+    }
+
+    // Update balance calculation (subtract the entry amount)
+    const newBalance = currentBalance - amount;
+    const newTotalEntries = totalEntries - amount;
+
+    // Delete entry
+    const entryRef = doc(db, COLLECTIONS.CASH_ENTRIES, entryId);
+    transaction.delete(entryRef);
+
+    // Update balance
+    if (balanceDoc.exists()) {
+      transaction.update(balanceRef, {
+        current_balance: newBalance,
+        total_entries: newTotalEntries,
+      });
+    }
+  });
+};
+
 // -----------------------------------------------------------------------------
 // Audit Logs
 // -----------------------------------------------------------------------------
