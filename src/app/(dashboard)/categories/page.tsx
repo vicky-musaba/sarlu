@@ -9,7 +9,7 @@ import { Input } from '@/components/ui/Input';
 import { Card } from '@/components/ui/Card';
 
 export default function CategoriesPage() {
-  const { isAdmin } = useAuth();
+  const { isAdmin, isFinancialController } = useAuth();
   const [categories, setCategories] = useState<Category[]>([]);
   const [loading, setLoading] = useState(true);
   const [showModal, setShowModal] = useState(false);
@@ -85,12 +85,22 @@ export default function CategoriesPage() {
     return <div className="flex items-center justify-center h-full">Chargement...</div>;
   }
 
+  const isReadOnly = isFinancialController;
+
   return (
     <div className="space-y-6">
       <div className="flex justify-between items-center">
         <h1 className="text-3xl font-bold text-gray-800">Catégories</h1>
-        <Button onClick={openAddModal}>+ Ajouter une catégorie</Button>
+        {!isReadOnly && <Button onClick={openAddModal}>+ Ajouter une catégorie</Button>}
       </div>
+
+      {isReadOnly && (
+        <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
+          <p className="text-yellow-800">
+            <strong>Mode lecture seule :</strong> En tant que Contrôleur Financier, vous pouvez consulter les catégories mais ne pouvez pas les créer, modifier ou supprimer.
+          </p>
+        </div>
+      )}
 
       <Card>
         <div className="overflow-x-auto">
@@ -118,24 +128,29 @@ export default function CategoriesPage() {
                     {new Date(category.created_at).toLocaleDateString('fr-FR')}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                    <div className="flex space-x-2">
-                      <Button
-                        size="sm"
-                        variant="secondary"
-                        onClick={() => handleEdit(category)}
-                        disabled={category.is_default}
-                      >
-                        ✏️
-                      </Button>
-                      <Button
-                        size="sm"
-                        variant="danger"
-                        onClick={() => handleDelete(category.id, category.is_default)}
-                        disabled={category.is_default}
-                      >
-                        🗑️
-                      </Button>
-                    </div>
+                    {!isReadOnly && (
+                      <div className="flex space-x-2">
+                        <Button
+                          size="sm"
+                          variant="secondary"
+                          onClick={() => handleEdit(category)}
+                          disabled={category.is_default}
+                        >
+                          ✏️
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="danger"
+                          onClick={() => handleDelete(category.id, category.is_default)}
+                          disabled={category.is_default}
+                        >
+                          🗑️
+                        </Button>
+                      </div>
+                    )}
+                    {isReadOnly && (
+                      <span className="text-gray-400 text-sm">Lecture seule</span>
+                    )}
                   </td>
                 </tr>
               ))}
@@ -145,7 +160,7 @@ export default function CategoriesPage() {
       </Card>
 
       {/* Modal */}
-      {showModal && (
+      {showModal && !isReadOnly && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
           <Card className="w-full max-w-md">
             <h2 className="text-xl font-bold mb-4">
