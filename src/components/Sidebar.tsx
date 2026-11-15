@@ -12,7 +12,7 @@ const menuItems = [
   { path: '/history', icon: '📋', label: 'Historique', roles: ['admin', 'supervisor', 'auditor', 'cashier'] },
   { path: '/reports', icon: '📊', label: 'Rapports', roles: ['admin', 'auditor', 'financial_controller'] },
   { path: '/categories', icon: '🏷️', label: 'Catégories', roles: ['admin', 'supervisor', 'financial_controller'] },
-  { path: '/cash', icon: '💵', label: 'Caisse', roles: ['admin', 'supervisor', 'auditor', 'cashier', 'financial_controller'] },
+  { path: '/cash', icon: '💵', label: 'Caisse', roles: ['admin', 'auditor', 'cashier', 'financial_controller'] },
   { path: '/audit', icon: '🧾', label: 'Journal d\'audit', roles: ['admin', 'auditor'] },
   { path: '/backup', icon: '💾', label: 'Sauvegardes', roles: ['admin'] },
   { path: '/settings', icon: '⚙️', label: 'Paramètres', roles: ['admin'] },
