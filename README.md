@@ -75,9 +75,7 @@ Ce script va automatiquement :
 - ✅ Initialiser le solde de caisse à 0
 - ✅ Configurer les paramètres entreprise
 
-**Comptes créés :**
-- Admin : admin@lesecours.com / admin123
-- Caissière : caissiere@lesecours.com / cashier123
+
 
 ### 4. Alternative : Créer manuellement (Option avancée)
 
@@ -154,12 +152,7 @@ npm run dev
 
 L'application sera accessible sur http://localhost:3000
 
-## 🚀 Déploiement sur Vercel
 
-### 1. Installer Vercel CLI
-
-```bash
-npm install -g vercel
 ```
 
 ### 2. Déployer
