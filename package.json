@@ -11,6 +11,9 @@
     "create-financial-controller": "node --experimental-modules scripts/create-financial-controller.mjs"
   },
   "dependencies": {
+    "@capacitor/android": "^8.5.3",
+    "@capacitor/cli": "^8.5.3",
+    "@capacitor/core": "^8.5.3",
     "@hookform/resolvers": "^5.9.1",
     "date-fns": "^4.4.0",
     "exceljs": "^4.4.0",
