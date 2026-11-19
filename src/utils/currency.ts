@@ -9,9 +9,13 @@ export const formatCurrency = (amount: number, currencySymbol: string = '$'): st
   };
 
   const currencyCode = currencyMap[currencySymbol] || 'USD';
-  
-  return new Intl.NumberFormat('fr-FR', { 
-    style: 'currency', 
-    currency: currencyCode 
+
+  // Format the number with proper grouping and decimals
+  const formattedNumber = new Intl.NumberFormat('fr-CD', {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
   }).format(amount);
+
+  // Append currency symbol
+  return `${formattedNumber} ${currencySymbol}`;
 };
